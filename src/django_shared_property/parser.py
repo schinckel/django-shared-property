@@ -49,7 +49,7 @@ class Parser(object):
                     decorator_list=[],
                 ),
             ],
-            **self.file
+            **self.file,
         )
         fix_missing_locations(self.ast)
         self.code = compile(self.ast, mode="exec", filename=self.file["filename"])
@@ -78,7 +78,7 @@ class Parser(object):
             test=self.build_expression(test),
             body=[Return(value=self.build_expression(body), **self.file)],
             orelse=orelse,
-            **self.file
+            **self.file,
         )
 
     def handle_q(self, q):
@@ -89,14 +89,14 @@ class Parser(object):
                 func=Name(id="all", **self.file),
                 args=[List(elts=[self._attr_lookup(k, v) for k, v in q.children], **self.file)],
                 keywords=[],
-                **self.file
+                **self.file,
             )
         else:  # q.connector == 'OR'
             expr = Call(
                 func=Name(id="any", **self.file),
                 args=[List(elts=[self._attr_lookup(k, v) for k, v in q.children], **self.file)],
                 keywords=[],
-                **self.file
+                **self.file,
             )
 
         if q.negated:
@@ -138,7 +138,7 @@ class Parser(object):
                 left=Attribute(value=Name(id="self", **self.file), attr=attr, **self.file),
                 ops=[Eq()],
                 comparators=[self.build_expression(value)],
-                **self.file
+                **self.file,
             )
 
         attr, lookup = attr.split("__", 1)
@@ -148,7 +148,7 @@ class Parser(object):
                 left=Attribute(value=Name(id="self", **self.file), attr=attr, **self.file),
                 ops=[Is() if value else IsNot()],
                 comparators=[Name(id="None", **self.file)],
-                **self.file
+                **self.file,
             )
 
         if lookup == "exact":
