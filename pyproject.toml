@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "Django Shared Property"
+name = "Django-Shared-Property"
 version = "0.1.0"
 description = "Properties that are both ORM expressions and python code."
 authors = ["Matthew Schinckel <matt@schinckel.net>"]
@@ -31,19 +31,19 @@ classifiers = [
 # List project dependencies here
 
 [tool.poetry.dev-dependencies]
-bump2version = "^0.5.0"
-pip = "^18.1"
-wheel = "^0.32.1"
-watchdog = "^0.9.0"
-flake8 = "^3.5.0"
-tox = "^3.5.2"
-coverage = "^4.5.1"
-Sphinx = "^1.8.1"
-twine = "^1.12.1"
+bump2version = "*"
+pip = "*"
+wheel = "*"
+watchdog = "*"
+flake8 = "*"
+tox = "*"
+coverage = "*"
+Sphinx = "*"
+twine = "*"
 
-pytest = "^3.8.2"
-pytest-runner = "^4.2"
-pytest-cov = "^2.6.0"
-setuptools = "^40.5.0"
-rstcheck = "^3.3.1"
-ptpython = "^2.0.4"
+pytest = "*"
+pytest-runner = "*"
+pytest-cov = "*"
+setuptools = "*"
+rstcheck = "*"
+ptpython = "*"

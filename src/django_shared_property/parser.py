@@ -20,38 +20,57 @@ from ast import (
     UnaryOp,
     arguments,
     fix_missing_locations,
+    stmt,
+    arg,
 )
 
 import six
+import astor
 
 
 class Parser(object):
     def __init__(self, function):
-        expression = function(None).copy()
+        expression = function(None)
+        if getattr(expression, 'copy', None):
+            expression = expression.copy()
+        func_code = getattr(function, '__code__', None) or function.func_code
         self.file = {
-            "lineno": function.func_code.co_firstlineno,
-            "filename": function.func_code.co_filename,
+            "lineno": func_code.co_firstlineno,
+            "filename": func_code.co_filename,
             "col_offset": 0,
             "ctx": Load(),
         }
         self.expression = expression
+        body = self.build_expression(expression)
+        if not isinstance(body, stmt):
+            body = Return(value=body)
         self.ast = Module(
             body=[
                 FunctionDef(
-                    name=function.func_code.co_name,
+                    name=func_code.co_name,
                     args=arguments(
-                        args=[Name(id="self", **self.file)],  # function.func_code.co_varnames
+                        args=[arg(arg='self', annotation=None)],  # function.func_code.co_varnames
                         defaults=[],
                         vararg=None,
                         kwarg=None,
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        posonlyargs=[],
                     ),
-                    body=[self.build_expression(expression)],
+                    kwarg=[],
+                    kw_defaults=[],
+                    vararg=[],
+                    kwonlyargs=[],
+                    body=[body],
                     decorator_list=[],
                 ),
             ],
-            **self.file,
+            type_ignores=[],
+            **self.file
         )
         fix_missing_locations(self.ast)
+        print(astor.dump_tree(self.ast))
+        # print(astor.to_source(self.ast))
         self.code = compile(self.ast, mode="exec", filename=self.file["filename"])
 
     def build_expression(self, expression):
@@ -78,7 +97,7 @@ class Parser(object):
             test=self.build_expression(test),
             body=[Return(value=self.build_expression(body), **self.file)],
             orelse=orelse,
-            **self.file,
+            **self.file
         )
 
     def handle_q(self, q):
@@ -89,14 +108,16 @@ class Parser(object):
                 func=Name(id="all", **self.file),
                 args=[List(elts=[self._attr_lookup(k, v) for k, v in q.children], **self.file)],
                 keywords=[],
-                **self.file,
+                kwonlyargs=[],
+                **self.file
             )
         else:  # q.connector == 'OR'
             expr = Call(
                 func=Name(id="any", **self.file),
                 args=[List(elts=[self._attr_lookup(k, v) for k, v in q.children], **self.file)],
                 keywords=[],
-                **self.file,
+                kwonlyargs=[],
+                **self.file
             )
 
         if q.negated:
@@ -132,13 +153,25 @@ class Parser(object):
 
         raise ValueError("Unhandled Value")
 
+    def handle_lower(self, lower):
+        return Call(
+            func=Attribute(value=Name(id="self", **self.file), attr="lower", **self.file),
+            args=[],
+            keywords=[],
+            kwonlyargs=[],
+            **self.file
+        )
+
+    def handle_expressionwrapper(self, expression):
+        return self.build_expression(*expression.get_source_expressions())
+
     def _attr_lookup(self, attr, value):
         if "__" not in attr:
             return Compare(
                 left=Attribute(value=Name(id="self", **self.file), attr=attr, **self.file),
                 ops=[Eq()],
                 comparators=[self.build_expression(value)],
-                **self.file,
+                **self.file
             )
 
         attr, lookup = attr.split("__", 1)
@@ -148,7 +181,7 @@ class Parser(object):
                 left=Attribute(value=Name(id="self", **self.file), attr=attr, **self.file),
                 ops=[Is() if value else IsNot()],
                 comparators=[Name(id="None", **self.file)],
-                **self.file,
+                **self.file
             )
 
         if lookup == "exact":

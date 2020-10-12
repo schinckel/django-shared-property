@@ -1,7 +1,19 @@
 # -*- coding: utf-8 -*-
+from django.db.models import F, Field
+from django.db.models.sql.query import Query
+from django.db.models.signals import class_prepared
+from django.dispatch import receiver
 
 from .expressions import ExpressionCol
 from .parser import Parser
+
+
+def pre_resolve(expression, model):
+    if isinstance(expression, F):
+        query = Query(model)
+        return expression.resolve_expression(query)
+
+    return expression
 
 
 class shared_property(object):
@@ -10,19 +22,42 @@ class shared_property(object):
         self.func = func
         context = {}
         eval(self.parsed.code, context)
-        self.callable = context[func.func_code.co_name]
+        self.callable = context[(getattr(func, '__code__', None) or func_code).co_name]
 
     def __get__(self, instance, cls=None):
         if instance is None:
             return self
         return self.callable(instance)
 
+    def __set__(self, instance, value):
+        pass
+
     def contribute_to_class(self, cls, name, private_only=False):
-        field = self.parsed.expression.output_field
+        # Try to resolve any F() expressions
+        # resolved = self.resolve_expression(self.parsed.expression, cls)
+        #
+        # @receiver(class_prepared, weak=False, sender=cls)
+        # def finish(sender, **kwargs):
+
+        expression = self.parsed.expression
+
+        if getattr(expression, 'output_field', None) is None:
+            resolved =  pre_resolve(expression, cls)
+            output_field = resolved.output_field
+        else:
+            output_field = expression.output_field
+
+        if output_field.name:
+            _name, _class, args, kwargs = output_field.deconstruct()
+            field = output_field.__class__(*args, **kwargs)
+        else:
+            field = output_field
+
         field.set_attributes_from_name(name)
         field.model = cls
         field.concrete = False
-        field.cached_col = ExpressionCol(self.parsed.expression)
+        field.cached_col = ExpressionCol(expression, cls, output_field)
+        field.get_col = lambda alias, _output_field=None: ExpressionCol(expression, cls, alias, output_field)
         cls._meta.add_field(field, private=True)
         if not getattr(cls, field.attname, None):
             setattr(cls, field.attname, self)
