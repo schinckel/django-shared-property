@@ -61,3 +61,6 @@ class shared_property(object):
         cls._meta.add_field(field, private=True)
         if not getattr(cls, field.attname, None):
             setattr(cls, field.attname, self)
+
+    def property(self, method):
+        import pdb; pdb.set_trace()

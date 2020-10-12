@@ -50,6 +50,10 @@ class Person(models.Model):
     def other(self):
         return F('name')
 
+    # @other.property
+    # def other(self):
+    #     return 'Other'
+
     # @shared_property
     # def username(self):
     #     return ExpressionWrapper(F('user__username'), output_field=models.TextField())

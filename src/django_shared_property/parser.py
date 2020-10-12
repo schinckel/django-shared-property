@@ -4,6 +4,7 @@ from ast import (
     BinOp,
     Call,
     Compare,
+    Constant,
     Eq,
     FunctionDef,
     If,
@@ -75,6 +76,7 @@ class Parser(object):
 
     def build_expression(self, expression):
         if expression is None:
+            return Constant(value=None, **self.file)
             return Name(id="None", **self.file)
         return getattr(self, "handle_{}".format(expression.__class__.__name__.lower()))(expression)
 
@@ -143,6 +145,7 @@ class Parser(object):
             return Str(s=value.value, **self.file)
 
         if value.value is None:
+            return Constant(value=None, **self.file)
             return Name(id="None", **self.file)
 
         if isinstance(value.value, int):
@@ -180,7 +183,10 @@ class Parser(object):
             return Compare(
                 left=Attribute(value=Name(id="self", **self.file), attr=attr, **self.file),
                 ops=[Is() if value else IsNot()],
-                comparators=[Name(id="None", **self.file)],
+                comparators=[
+                    Constant(value=None, **self.file)
+                    # Name(id="None", **self.file)
+                ],
                 **self.file
             )
 
