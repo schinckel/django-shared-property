@@ -52,3 +52,7 @@ def test_raw_f_expressions():
     assert Person(first_name='Foo', last_name='Bar').other == 'Foo Bar'
     Person.objects.create(first_name='Foo', last_name='Bar')
     assert Person.objects.filter(other='Foo Bar').exists()
+
+
+def test_alternate_syntax():
+    assert Person(first_name='Bar').alternate_syntax == 'Bar'

@@ -50,9 +50,17 @@ class Person(models.Model):
     def other(self):
         return F('name')
 
-    # @other.property
-    # def other(self):
-    #     return 'Other'
+    @shared_property
+    def useless(self):
+        return F('name')
+
+    @useless.property
+    def useless(self):
+        return 'Useless'
+
+    @shared_property(F('first_name'))
+    def alternate_syntax(self):
+        return self.first_name
 
     # @shared_property
     # def username(self):

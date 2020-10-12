@@ -18,11 +18,19 @@ def pre_resolve(expression, model):
 
 class shared_property(object):
     def __init__(self, func):
-        self.parsed = Parser(func)
-        self.func = func
-        context = {}
-        eval(self.parsed.code, context)
-        self.callable = context[(getattr(func, '__code__', None) or func_code).co_name]
+        try:
+            self.parsed = Parser(func)
+            self.expression = self.parsed.expression
+            self.func = func
+            context = {}
+            eval(self.parsed.code, context)
+            self.callable = context[(getattr(func, '__code__', None) or func_code).co_name]
+        except TypeError:
+            self.expression = func
+
+    def __call__(self, method):
+        self.callable = method
+        return self
 
     def __get__(self, instance, cls=None):
         if instance is None:
@@ -39,7 +47,7 @@ class shared_property(object):
         # @receiver(class_prepared, weak=False, sender=cls)
         # def finish(sender, **kwargs):
 
-        expression = self.parsed.expression
+        expression = self.expression
 
         if getattr(expression, 'output_field', None) is None:
             resolved =  pre_resolve(expression, cls)
@@ -63,4 +71,4 @@ class shared_property(object):
             setattr(cls, field.attname, self)
 
     def property(self, method):
-        import pdb; pdb.set_trace()
+        self(method)
