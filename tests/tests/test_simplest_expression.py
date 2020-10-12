@@ -54,5 +54,13 @@ def test_raw_f_expressions():
     assert Person.objects.filter(other='Foo Bar').exists()
 
 
+def test_override_callable():
+    # This shows that it actually overrides, and uses the python code.
+    # Normally you wouldn't do this: make it return a different value.
+    assert Person(first_name='Foo', last_name='Bar').useless == 'Useless'
+    Person.objects.create(first_name='Foo', last_name='Bar')
+    assert Person.objects.get(useless='Foo Bar').useless == 'Useless'
+
+
 def test_alternate_syntax():
     assert Person(first_name='Bar').alternate_syntax == 'Bar'

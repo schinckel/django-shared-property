@@ -71,4 +71,4 @@ class shared_property(object):
             setattr(cls, field.attname, self)
 
     def property(self, method):
-        self(method)
+        return self(method)
