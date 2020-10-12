@@ -2,11 +2,9 @@
 sudo: false
 language: python
 python:
+  - 3.8
   - 3.7
   - 3.6
-  - 3.5
-  - 3.4
-  - 2.7
 
 env:
   global:
@@ -16,7 +14,7 @@ env:
 # Command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
 install:
 - pip install -U poetry
-- pip install -U tox-travis 
+- pip install -U tox-travis
 
 
 # Command to run tests, e.g. python setup.py test
@@ -37,5 +35,5 @@ deploy:
   on:
     tags: true
     repo: schinckel/Django Shared Property
-    branch: master
-    python: 3.6
+    branch: main
+    python: 3.9
