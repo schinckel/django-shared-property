@@ -77,7 +77,6 @@ class Parser(object):
     def build_expression(self, expression):
         if expression is None:
             return Constant(value=None, **self.file)
-            return Name(id="None", **self.file)
         return getattr(self, "handle_{}".format(expression.__class__.__name__.lower()))(expression)
 
     def handle_case(self, case):
@@ -146,7 +145,6 @@ class Parser(object):
 
         if value.value is None:
             return Constant(value=None, **self.file)
-            return Name(id="None", **self.file)
 
         if isinstance(value.value, int):
             return Num(n=value.value, **self.file)
