@@ -22,7 +22,7 @@ class shared_property(object):
             self.func = func
             context = {}
             eval(self.parsed.code, context)
-            self.callable = context[(getattr(func, '__code__', None) or func.func_code).co_name]
+            self.callable = context[(getattr(func, "__code__", None) or func.func_code).co_name]
         except TypeError:
             self.expression = func
 
@@ -47,8 +47,8 @@ class shared_property(object):
 
         expression = self.expression
 
-        if getattr(expression, 'output_field', None) is None:
-            resolved =  pre_resolve(expression, cls)
+        if getattr(expression, "output_field", None) is None:
+            resolved = pre_resolve(expression, cls)
             output_field = resolved.output_field
         else:
             output_field = expression.output_field

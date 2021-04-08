@@ -1,4 +1,4 @@
-from ..models import Person, User, Group
+from ..models import Group, Person, User
 
 
 def test_empty_lookup():
@@ -6,29 +6,25 @@ def test_empty_lookup():
 
 
 def test_null_lookup():
-    Person.objects.create(first_name='foo', last_name='bar')
+    Person.objects.create(first_name="foo", last_name="bar")
     assert Person.objects.get().username is None
     assert Person.objects.filter(username=None).exists()
 
 
 def test_value_lookup():
-    Person.objects.create(
-        first_name='foo',
-        last_name='bar',
-        user=User.objects.create(username='baz')
-    )
-    assert Person.objects.get().username == 'baz'
-    assert Person.objects.filter(username='baz').exists()
+    Person.objects.create(first_name="foo", last_name="bar", user=User.objects.create(username="baz"))
+    assert Person.objects.get().username == "baz"
+    assert Person.objects.filter(username="baz").exists()
     assert not Person.objects.filter(username=None).exists()
 
 
 def test_multiple_lookups():
     Person.objects.create(
-        first_name='foo',
-        last_name='bar',
-        user=User.objects.create(username='baz', group=Group.objects.create(name='qux'))
+        first_name="foo",
+        last_name="bar",
+        user=User.objects.create(username="baz", group=Group.objects.create(name="qux")),
     )
 
-    assert Person.objects.get().group == 'qux'
-    assert Person.objects.filter(group='qux').exists()
+    assert Person.objects.get().group == "qux"
+    assert Person.objects.filter(group="qux").exists()
     assert not Person.objects.filter(group=None).exists()

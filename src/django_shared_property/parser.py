@@ -19,22 +19,22 @@ from ast import (
     Return,
     Str,
     UnaryOp,
+    arg,
     arguments,
     fix_missing_locations,
     stmt,
-    arg,
 )
 
-import six
 import astor
+import six
 
 
 class Parser(object):
     def __init__(self, function):
         expression = function(None)
-        if getattr(expression, 'copy', None):
+        if getattr(expression, "copy", None):
             expression = expression.copy()
-        func_code = getattr(function, '__code__', None) or function.func_code
+        func_code = getattr(function, "__code__", None) or function.func_code
         self.file = {
             "lineno": func_code.co_firstlineno,
             "filename": func_code.co_filename,
@@ -50,7 +50,7 @@ class Parser(object):
                 FunctionDef(
                     name=func_code.co_name,
                     args=arguments(
-                        args=[arg(arg='self', annotation=None)],  # function.func_code.co_varnames
+                        args=[arg(arg="self", annotation=None)],  # function.func_code.co_varnames
                         defaults=[],
                         vararg=None,
                         kwarg=None,
