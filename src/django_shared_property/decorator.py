@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
-from django.db.models import F, Field
+from django.db.models import F
 from django.db.models.sql.query import Query
-from django.db.models.signals import class_prepared
-from django.dispatch import receiver
 
 from .expressions import ExpressionCol
 from .parser import Parser
@@ -24,7 +22,7 @@ class shared_property(object):
             self.func = func
             context = {}
             eval(self.parsed.code, context)
-            self.callable = context[(getattr(func, '__code__', None) or func_code).co_name]
+            self.callable = context[(getattr(func, '__code__', None) or func.func_code).co_name]
         except TypeError:
             self.expression = func
 

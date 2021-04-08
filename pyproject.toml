@@ -26,8 +26,11 @@ classifiers = [
     "Programming Language :: Python :: 3.5",
     "Programming Language :: Python :: 3.6",
     "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
 ]
 [tool.poetry.dependencies]
+python = "~3.8"
 # List project dependencies here
 
 [tool.poetry.dev-dependencies]
@@ -47,3 +50,7 @@ pytest-cov = "*"
 setuptools = "*"
 rstcheck = "*"
 ptpython = "*"
+
+[build-system]
+requires = ["poetry>=1.0"]
+build-backend = "poetry.masonry.api"

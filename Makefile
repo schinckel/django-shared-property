@@ -51,7 +51,7 @@ clean-test: ## remove test and coverage artifacts
 	rm -fr .pytest_cache
 
 lint: ## check style with flake8
-	flake8 django_shared_property tests
+	flake8 src/django_shared_property tests
 
 test: ## run tests quickly with the default Python
 	poetry run pytest
@@ -68,7 +68,7 @@ coverage: ## check code coverage quickly with the default Python
 docs: ## generate Sphinx HTML documentation, including API docs
 	rm -f docs/django_shared_property.rst
 	rm -f docs/modules.rst
-	sphinx-apidoc -o docs/ django_shared_property
+	sphinx-apidoc -o docs/ src/django_shared_property
 	$(MAKE) -C docs clean
 	$(MAKE) -C docs html
 	$(BROWSER) docs/_build/html/index.html
