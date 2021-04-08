@@ -32,6 +32,7 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "~3.8"
 # List project dependencies here
+six = "*"
 
 [tool.poetry.dev-dependencies]
 bump2version = "*"
