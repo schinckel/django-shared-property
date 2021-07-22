@@ -81,8 +81,6 @@ class Parser(object):
             **self.file,
         )
         fix_missing_locations(self.ast)
-        print(astor.dump_tree(self.ast))
-        print(astor.to_source(self.ast))
         self.code = compile(self.ast, mode="exec", filename=self.file["filename"])
 
     def build_expression(self, expression):
