@@ -31,6 +31,7 @@ classifiers = [
 ]
 [tool.poetry.dependencies]
 python = ">3.8"
+astor = "*"
 
 [tool.poetry.dev-dependencies]
 bump2version = "*"
