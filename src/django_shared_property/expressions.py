@@ -9,8 +9,8 @@ class ExpressionCol(Expression):
         self.alias = alias
         self.model = model
         self.target = target
-        self.output_field = target.output_field
-    
+        self.output_field = target.resolved_expression.output_field
+
     def get_lookup(self, name):
         return self.target.get_lookup(name)
 
@@ -19,14 +19,14 @@ class ExpressionCol(Expression):
 
     def as_sql(self, compiler, connection):
         resolved = self.target.resolved_expression
-        if getattr(resolved, 'alias', None):
+        if getattr(resolved, "alias", None):
             if resolved.alias not in compiler.query.alias_map:
                 compiler.query.setup_joins(
-                    self.expression.name.split('__'),
+                    self.expression.name.split("__"),
                     self.model._meta,
                     self.alias,
                 )
         return resolved.as_sql(compiler, connection)
-        
+
     def get_db_converters(self, connection):
         return self.target.get_db_converters(connection)
