@@ -1,3 +1,5 @@
+import pytest
+
 from ..models import Group, Person, User
 
 
@@ -12,14 +14,16 @@ def test_null_lookup():
     assert Person.objects.get().username is None
 
 
-# def test_exists_query():
-#     Person.objects.create(first_name="foo", last_name="bar")
-#     assert Person.objects.filter(username=None).exists()
+@pytest.mark.xfail
+def test_exists_query():
+    Person.objects.create(first_name="foo", last_name="bar")
+    assert Person.objects.filter(username=None).exists()
 
 
-# def test_count_query():
-#     Person.objects.create(first_name="foo", last_name="bar")
-#     assert Person.objects.filter(username=None).count()
+@pytest.mark.xfail
+def test_count_query():
+    Person.objects.create(first_name="foo", last_name="bar")
+    assert Person.objects.filter(username=None).count()
 
 
 def test_value_lookup():

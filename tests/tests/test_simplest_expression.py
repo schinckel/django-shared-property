@@ -5,9 +5,9 @@ def test_computed_field_exists_and_can_be_queried():
     assert not Person.objects.filter(name="foo bar").exists()
 
 
-def test_values_query_result_not_includes_column():
+def test_values_query_result_includes_column():
     Person.objects.create(first_name="Foo", last_name="Bar")
-    assert "name" not in Person.objects.values()[0]
+    assert Person.objects.values()[0]["name"] == "Foo Bar"
 
 
 def test_create_works():

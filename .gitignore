@@ -103,3 +103,6 @@ ENV/
 alabaster
 
 .vscode/
+
+# This is a poetry app, but to be able to install using pip -e, it needs this file.
+setup.py

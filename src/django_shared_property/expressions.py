@@ -1,26 +1,32 @@
 from django.db.models.expressions import Expression
-from django.db.models.sql.query import Query
 
 
 class ExpressionCol(Expression):
     contains_aggregate = False
 
-    def __init__(self, expression, model, alias=None, output_field=None, target=None):
+    def __init__(self, expression, model, alias=None, target=None):
         self.expression = expression
-        self.output_field = output_field or expression.resolve_expression(Query(model)).output_field
         self.alias = alias
         self.model = model
         self.target = target
-
+        self.output_field = target.output_field
+    
     def get_lookup(self, name):
-        return self.output_field.get_lookup(name)
+        return self.target.get_lookup(name)
 
     def get_transform(self, name):
-        return self.output_field.get_transform(name)
+        return self.target.get_transform(name)
 
     def as_sql(self, compiler, connection):
-        resolved = self.expression.resolve_expression(compiler.query)
+        resolved = self.target.resolved_expression
+        if getattr(resolved, 'alias', None):
+            if resolved.alias not in compiler.query.alias_map:
+                compiler.query.setup_joins(
+                    self.expression.name.split('__'),
+                    self.model._meta,
+                    self.alias,
+                )
         return resolved.as_sql(compiler, connection)
-
+        
     def get_db_converters(self, connection):
-        return self.output_field.get_db_converters(connection)  # + self.expression.get_db_converters(connection)
+        return self.target.get_db_converters(connection)

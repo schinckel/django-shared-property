@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
-from django.db.models import Expression, F, Field
+from django.db.models import Expression, F, AutoField
 from django.db.models.sql.query import Query
+from django.utils.functional import cached_property
 
 from .expressions import ExpressionCol
 from .parser import Parser
 
 
-class SharedPropertyField(Field):
+class SharedPropertyField(AutoField):
     def __init__(self, name, expression, model):
         self.expression = expression
         self.model = model
@@ -15,14 +16,28 @@ class SharedPropertyField(Field):
         self.set_attributes_from_name(name)
 
     def get_col(self, alias, output_field=None):
+        if alias != self.model._meta.db_table or output_field != self:
+            return ExpressionCol(
+                self.expression,
+                self.model,
+                alias,
+                output_field or self,
+            )
+        return self.cached_col
+    
+    @cached_property
+    def cached_col(self):
         return ExpressionCol(
             self.expression,
             self.model,
-            alias,
-            self.expression.resolve_expression(Query(self.model)).output_field,
-            self,
+            self.model._meta.db_table,
+            self
         )
-
+    
+    @cached_property
+    def resolved_expression(self):
+        return self.expression.resolve_expression(Query(self.model))
+        
 
 class shared_property(object):
     def __init__(self, func):

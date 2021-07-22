@@ -237,9 +237,9 @@ class Parser(object):
 
         raise ValueError("Unhandled Value")
 
-    def handle_lower(self, lower):
+    def handle_lower(self, expression):
         return Call(
-            func=Attribute(value=Name(id="self", **self.file), attr="lower", **self.file),
+            func=Attribute(value=self.build_expression(*expression.get_source_expressions()), attr="lower", **self.file),
             args=[],
             keywords=[],
             kwonlyargs=[],
