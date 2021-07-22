@@ -77,7 +77,7 @@ servedocs: docs ## compile the docs watching for changes
 	watchmedo shell-command -p '*.rst' -c '$(MAKE) -C docs html' -R -D .
 
 release: dist ## package and upload a release
-	poetry publish
+	twine upload dist/*$(shell cat setup.cfg | grep 'current_version =' | cut -d ' ' -f 3)*
 
 dist: clean ## builds source and wheel package
 	poetry build
