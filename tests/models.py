@@ -61,13 +61,13 @@ class Person(models.Model):
     def alternate_syntax(self):
         return self.first_name
 
-    # @shared_property
-    # def username(self):
-    #     return ExpressionWrapper(F('user__username'), output_field=models.TextField())
-    #
-    # @shared_property
-    # def group(self):
-    #     return ExpressionWrapper(F('user__group__name'), output_field=models.TextField())
+    @shared_property
+    def username(self):
+        return F("user__username")
+
+    @shared_property
+    def group(self):
+        return F("user__group__name")
 
 
 class Address(models.Model):

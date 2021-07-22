@@ -1,7 +1,10 @@
 from ast import (
     Add,
+    And,
+    Assign,
     Attribute,
     BinOp,
+    BoolOp,
     Call,
     Compare,
     Constant,
@@ -17,16 +20,18 @@ from ast import (
     Not,
     Num,
     Return,
+    Store,
     Str,
     UnaryOp,
+    While,
     arg,
     arguments,
     fix_missing_locations,
     stmt,
 )
+from enum import Enum
 
 import astor
-import six
 
 
 class Parser(object):
@@ -41,10 +46,16 @@ class Parser(object):
             "col_offset": 0,
             "ctx": Load(),
         }
+        self.file_store = dict(self.file, ctx=Store())
         self.expression = expression
         body = self.build_expression(expression)
-        if not isinstance(body, stmt):
-            body = Return(value=body)
+        if isinstance(body, list):
+            pass
+        elif not isinstance(body, stmt):
+            body = [Return(value=body, **self.file)]
+        else:
+            body = [body]
+
         self.ast = Module(
             body=[
                 FunctionDef(
@@ -62,16 +73,16 @@ class Parser(object):
                     kw_defaults=[],
                     vararg=[],
                     kwonlyargs=[],
-                    body=[body],
+                    body=body,
                     decorator_list=[],
                 ),
             ],
             type_ignores=[],
-            **self.file
+            **self.file,
         )
         fix_missing_locations(self.ast)
         print(astor.dump_tree(self.ast))
-        # print(astor.to_source(self.ast))
+        print(astor.to_source(self.ast))
         self.code = compile(self.ast, mode="exec", filename=self.file["filename"])
 
     def build_expression(self, expression):
@@ -98,19 +109,21 @@ class Parser(object):
             test=self.build_expression(test),
             body=[Return(value=self.build_expression(body), **self.file)],
             orelse=orelse,
-            **self.file
+            **self.file,
         )
 
     def handle_q(self, q):
         if not q.children:
             expr = Name(id="True", **self.file)
+        elif len(q.children) == 1:
+            expr = self._attr_lookup(*q.children[0])
         elif q.connector == "AND":
             expr = Call(
                 func=Name(id="all", **self.file),
                 args=[List(elts=[self._attr_lookup(k, v) for k, v in q.children], **self.file)],
                 keywords=[],
                 kwonlyargs=[],
-                **self.file
+                **self.file,
             )
         else:  # q.connector == 'OR'
             expr = Call(
@@ -118,7 +131,7 @@ class Parser(object):
                 args=[List(elts=[self._attr_lookup(k, v) for k, v in q.children], **self.file)],
                 keywords=[],
                 kwonlyargs=[],
-                **self.file
+                **self.file,
             )
 
         if q.negated:
@@ -137,10 +150,82 @@ class Parser(object):
         # Do we need to use .attname here?
         # What about transforms/lookups?
         f.contains_aggregate = False
+        if "__" in f.name:
+            # We need to chain a bunch of attr lookups, returning None
+            # if any of them give us a None, we should be returning a None.
+            #
+
+            # .  while x is not None and parts:
+            # .      x = getattr(x, parts.pop(0), None)
+            #   return x
+            return [
+                Assign(
+                    targets=[Name(id="source", **self.file_store)], value=Name(id="self", **self.file), **self.file
+                ),
+                Assign(
+                    targets=[Name(id="parts", **self.file_store)],
+                    value=Call(
+                        func=Attribute(value=Constant(value=f.name, **self.file), attr="split", **self.file),
+                        args=[Constant(value="__", **self.file)],
+                        keywords=[],
+                        kwonlyargs=[],
+                        **self.file,
+                    ),
+                    **self.file,
+                ),
+                While(
+                    test=BoolOp(
+                        op=And(),
+                        values=[
+                            Compare(
+                                left=Name(id="source", **self.file),
+                                ops=[IsNot()],
+                                comparators=[Constant(value=None, **self.file)],
+                                **self.file,
+                            ),
+                            Name(id="parts", **self.file),
+                        ],
+                        **self.file,
+                    ),
+                    body=[
+                        Assign(
+                            targets=[Name(id="source", **self.file_store)],
+                            value=Call(
+                                func=Name(id="getattr", **self.file),
+                                args=[
+                                    Name(id="source", **self.file),
+                                    Call(
+                                        func=Attribute(value=Name(id="parts", **self.file), attr="pop", **self.file),
+                                        args=[Constant(value=0, **self.file)],
+                                        keywords=[],
+                                        kwonlyargs=[],
+                                        **self.file,
+                                    ),
+                                    Constant(value=None, **self.file),
+                                ],
+                                keywords=[],
+                                kwonlyargs=[],
+                                **self.file,
+                            ),
+                            **self.file,
+                        ),
+                    ],
+                    orelse=[],
+                    **self.file,
+                ),
+                Return(value=Name(id="source", **self.file), **self.file),
+            ]
         return Attribute(value=Name(id="self", **self.file), attr=f.name, **self.file)
 
     def handle_value(self, value):
-        if isinstance(value.value, six.string_types):
+        if isinstance(value.value, Enum):
+            return Attribute(
+                value=Name(id=value.value.__class__.__name__, **self.file),
+                attr=value.value.name,
+                **self.file,
+            )
+
+        if isinstance(value.value, str):
             return Str(s=value.value, **self.file)
 
         if value.value is None:
@@ -160,7 +245,7 @@ class Parser(object):
             args=[],
             keywords=[],
             kwonlyargs=[],
-            **self.file
+            **self.file,
         )
 
     def handle_expressionwrapper(self, expression):
@@ -172,7 +257,7 @@ class Parser(object):
                 left=Attribute(value=Name(id="self", **self.file), attr=attr, **self.file),
                 ops=[Eq()],
                 comparators=[self.build_expression(value)],
-                **self.file
+                **self.file,
             )
 
         attr, lookup = attr.split("__", 1)
@@ -185,7 +270,7 @@ class Parser(object):
                     Constant(value=None, **self.file)
                     # Name(id="None", **self.file)
                 ],
-                **self.file
+                **self.file,
             )
 
         if lookup == "exact":

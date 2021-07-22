@@ -30,9 +30,7 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
 ]
 [tool.poetry.dependencies]
-python = "~3.8"
-# List project dependencies here
-six = "*"
+python = ">3.8"
 
 [tool.poetry.dev-dependencies]
 bump2version = "*"
@@ -48,7 +46,6 @@ twine = "*"
 pytest = "*"
 pytest-runner = "*"
 pytest-cov = "*"
-setuptools = "*"
 rstcheck = "*"
 ptpython = "*"
 

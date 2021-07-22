@@ -17,5 +17,5 @@ repos:
   rev: 5.4.2
   hooks:
   - id: isort
-    entry: isort --check-only --use-parentheses --trailing-comma --line-length 119
+    entry: isort --use-parentheses --trailing-comma --line-length 119
     language_version: python3
