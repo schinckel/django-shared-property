@@ -90,3 +90,6 @@ version-major:
 
 version-minor:
 	bump2version minor
+
+version-patch:
+	bump2version patch
