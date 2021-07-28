@@ -31,8 +31,6 @@ from ast import (
 )
 from enum import Enum
 
-import astor
-
 
 class Parser(object):
     def __init__(self, function):
