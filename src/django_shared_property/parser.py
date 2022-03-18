@@ -1,4 +1,4 @@
-from ast import (
+from ast import (  # Import,; ImportFrom,; Expr,; alias,
     Add,
     And,
     Assign,
@@ -10,26 +10,43 @@ from ast import (
     Constant,
     Eq,
     FunctionDef,
+    GeneratorExp,
+    Gt,
+    GtE,
     If,
     Is,
     IsNot,
     List,
     Load,
+    Lt,
+    LtE,
     Module,
     Name,
     Not,
+    NotEq,
     Num,
     Return,
     Store,
     Str,
+    Tuple,
     UnaryOp,
     While,
     arg,
     arguments,
+    comprehension,
     fix_missing_locations,
     stmt,
 )
 from enum import Enum
+
+OPERATORS = {
+    "<": Lt,
+    "<=": LtE,
+    "=": Eq,
+    "!=": NotEq,
+    ">": Gt,
+    ">=": GtE,
+}
 
 
 class Parser(object):
@@ -46,6 +63,7 @@ class Parser(object):
         }
         self.file_store = dict(self.file, ctx=Store())
         self.expression = expression
+        # self.imports = []
         body = self.build_expression(expression)
         if isinstance(body, list):
             pass
@@ -55,6 +73,7 @@ class Parser(object):
             body = [body]
 
         self.ast = Module(
+            # body=self.imports + [
             body=[
                 FunctionDef(
                     name=func_code.co_name,
@@ -235,17 +254,100 @@ class Parser(object):
 
         raise ValueError("Unhandled Value")
 
-    def handle_lower(self, expression):
-        return Call(
-            func=Attribute(value=self.build_expression(*expression.get_source_expressions()), attr="lower", **self.file),
-            args=[],
-            keywords=[],
-            kwonlyargs=[],
-            **self.file,
-        )
+    def _handle_call_factory(func):
+        def handle_call(self, expression):
+            return Call(
+                func=Attribute(
+                    value=self.build_expression(*expression.get_source_expressions()), attr=func, **self.file
+                ),
+                args=[],
+                keywords=[],
+                kwonlyargs=[],
+                **self.file,
+            )
+
+        return handle_call
+
+    handle_upper = _handle_call_factory("upper")
+    handle_lower = _handle_call_factory("lower")
 
     def handle_expressionwrapper(self, expression):
         return self.build_expression(*expression.get_source_expressions())
+
+    def handle_combinedexpression(self, expression):
+        return Compare(
+            left=self.build_expression(expression.lhs),
+            ops=[OPERATORS[expression.connector](**self.file)],
+            comparators=[self.build_expression(expression.rhs)],
+            **self.file,
+        )
+
+    # This is commented out because it only supports one function.
+    # def handle_func(self, expression):
+    #     func = expression.extra.get('function') or expression.function
+    #     if func in {'current_timestamp', 'now'}:
+    #         self.imports.append(Import(names=[alias(name='django.utils')]))
+    #         return Call(
+    #             func=Attribute(
+    #                 value=Attribute(
+    #                     value=Attribute(
+    #                         value=Name('django', **self.file),
+    #                         attr='utils',
+    #                         **self.file
+    #                     ),
+    #                     attr='timezone',
+    #                     **self.file
+    #                 ),
+    #                 attr='now',
+    #                 **self.file
+    #             ),
+    #             args=[],
+    #             keywords=[],
+    #             **self.file,
+    #         )
+    #         return Call(func=Name(id='utcnow', **self.file), args=[], keywords=[], **self.file)
+
+    def handle_coalesce(self, expression):
+        """
+        next(
+            itertools.chain(
+                (x for x in expression.get_source_expressions() where x is not Null),
+                (None,)
+            )
+        )
+        """
+        expressions = List(
+            elts=[self.build_expression(exp) for exp in expression.get_source_expressions()],
+            **self.file,
+        )
+
+        return Call(
+            func=Name(id="next", **self.file),
+            args=[
+                GeneratorExp(
+                    elt=Name(id="x", **self.file),
+                    generators=[
+                        comprehension(
+                            target=Name(id="x", ctx=Store()),
+                            iter=expressions,
+                            ifs=[
+                                Compare(
+                                    left=Name(id="x", **self.file),
+                                    ops=[IsNot()],
+                                    comparators=[Constant(value=None, **self.file)],
+                                ),
+                            ],
+                            is_async=False,
+                            **self.file,
+                        )
+                    ],
+                    **self.file,
+                ),
+                Tuple(elts=[Constant(value=None, **self.file)], **self.file),
+            ],
+            keywords=[],
+            **self.file,
+        )
 
     def _attr_lookup(self, attr, value):
         if "__" not in attr:
@@ -262,10 +364,7 @@ class Parser(object):
             return Compare(
                 left=Attribute(value=Name(id="self", **self.file), attr=attr, **self.file),
                 ops=[Is() if value else IsNot()],
-                comparators=[
-                    Constant(value=None, **self.file)
-                    # Name(id="None", **self.file)
-                ],
+                comparators=[Constant(value=None, **self.file)],
                 **self.file,
             )
 

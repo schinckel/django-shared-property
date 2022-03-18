@@ -1,6 +1,7 @@
 from django.db import models
-from django.db.models.expressions import Case, F, Value, When
-from django.db.models.functions import Concat, Lower
+from django.db.models.expressions import Case, CombinedExpression, F, Func, Value, When
+from django.db.models.functions import Coalesce, Concat, Lower
+from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from django_shared_property.decorator import shared_property
@@ -19,8 +20,9 @@ try:
     from django.db.models.enums import TextChoices
 
     class State(TextChoices):
-        ACTIVE = 'active', _('Active')
-        INACTIVE = 'inactive', _('Inactive')
+        ACTIVE = "active", _("Active")
+        INACTIVE = "inactive", _("Inactive")
+
 
 except ImportError:
     State = None
@@ -35,7 +37,7 @@ class Person(models.Model):
     first_name = models.TextField()
     last_name = models.TextField()
     preferred_name = models.TextField(null=True, blank=True)
-    active_bool = models.BooleanField(default=True)
+    active_until = models.DateTimeField(null=True, blank=True)
 
     @shared_property
     def name(self):
@@ -86,17 +88,28 @@ class Person(models.Model):
     def group(self):
         return F("user__group__name")
 
-    @shared_property
+    @shared_property(
+        Coalesce(
+            CombinedExpression(
+                Func(function="current_timestamp", arity=0, template="%(function)s"),
+                "<",
+                F("active_until"),
+            ),
+            Value(True),
+            output_field=models.BooleanField(),
+        )
+    )
     def active(self):
-        return F('active_bool')
+        return self.active_until is None or self.active_until > timezone.now()
 
     if State:
+
         @shared_property
         def state(self):
             return Case(
-                When(models.Q(active_bool=models.Value(True)), then=models.Value(State.ACTIVE)),
+                When(models.Q(active=models.Value(True)), then=models.Value(State.ACTIVE)),
                 default=models.Value(State.INACTIVE),
-                output_field=models.TextField()
+                output_field=models.TextField(),
             )
 
 

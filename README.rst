@@ -50,12 +50,12 @@ But, unlike Python properties, these annotations are not "live". If, for example
             return self.annotate(
               full_name=Concat(models.F('first_name'), models.Value(' '), models.F('last_name')),
             )
-            
-            
+
+
     class Person(models.Model):
         first_name = models.TextField()
         last_name = models.TextField()
-        
+
         objects = FullNameQueryset.as_manager()
 
 
@@ -75,7 +75,7 @@ Similar to a Python property, a django-shared-property requires a method that ta
     class Person(models.Model):
         first_name = models.TextField()
         last_name = models.TextField()
-        
+
         @shared_property
         def full_name(self):
             return Concat(models.F('first_name'), models.Value(' '), models.F('last_name'))
@@ -100,14 +100,15 @@ Shared properties can reference any number of fields on the model, and even othe
   * Q (Specifically, within a When, but it could work elsewhere)
   * Concat
   * Value
-  * Lower
-  * Upper
+  * Lower and Upper (but only on Python objects that have these as attributes)
   * ExpressionWrapper
+  * CombinedExpresson
+  * Coalesce (but see the note below)
 
 Within the context of a Q expression, you can use ``__isnull`` and ``__exact`` lookups.
 
 
-You can even refer to constants in your Python file, such as the different values of an Enum.
+You can even refer to constants in your Python file, such as the different values of an Enum. The return value of your python object will then correctly return instances of the Enum.
 
 
 If your chosen expression/function/value does not work, then it may be possible to implement it.
@@ -143,7 +144,7 @@ Sometimes you want to define the callable yourself: there is an alternate syntax
 
     class MyModel(models.Model):
         # other fields
-        
+
         @shared_property(Case(
             When(models.Q(x__gte=2, x__lt=5), then=models.Value('B')),
             When(models.Q(x__lt=2), then=models.Value('A')),
@@ -157,7 +158,17 @@ Sometimes you want to define the callable yourself: there is an alternate syntax
                 return 'A'
             return 'C'
 
+        @shared_property(Coalesce(
+          CombinedExpression(F('expiry_date'), '<', Func(function='current_timestamp')),
+          models.Value(True),
+        ))
+        def active(self):
+            return self.expiry_date is None or self.expiry_date < timezone.now()
+
+
 In this specific case, the code that is generated would be fairly similar (although it would not use the ``a < b < c`` idiom), however it shows how it is possible to to explicitly provide the python code. Please note that the onus of responsibility is on the developer to ensure that the expression and function are equivalent in this context.
+
+The second example shows where a python comparison doesn't quite map to the SQL code: the ``COALESCE(expiry_date < now(), true)`` relies on SQL comparisons involving NULL to also return NULL, but in Python you cannot do this.
 
 Also note that in this case only a single expression may be used as the argument to the decorator.
 
