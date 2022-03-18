@@ -14,6 +14,7 @@ class SharedPropertyField(AutoField):
         self.concrete = False
         super().__init__()
         self.set_attributes_from_name(name)
+        self.db_returning = False
 
     def get_col(self, alias, output_field=None):
         if alias != self.model._meta.db_table or output_field != self:
@@ -24,7 +25,7 @@ class SharedPropertyField(AutoField):
                 output_field or self,
             )
         return self.cached_col
-    
+
     @cached_property
     def cached_col(self):
         return ExpressionCol(
@@ -33,11 +34,11 @@ class SharedPropertyField(AutoField):
             self.model._meta.db_table,
             self
         )
-    
+
     @cached_property
     def resolved_expression(self):
         return self.expression.resolve_expression(Query(self.model))
-        
+
 
 class shared_property(object):
     def __init__(self, func):
