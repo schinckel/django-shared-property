@@ -1,6 +1,7 @@
 from django.db import models
 from django.db.models.expressions import Case, F, Value, When
 from django.db.models.functions import Concat, Lower
+from django.utils.translation import gettext as _
 
 from django_shared_property.decorator import shared_property
 
@@ -14,11 +15,27 @@ class User(models.Model):
     group = models.ForeignKey(Group, null=True, blank=True, on_delete=models.SET_NULL)
 
 
+try:
+    from django.db.models.enums import TextChoices
+
+    class State(TextChoices):
+        ACTIVE = 'active', _('Active')
+        INACTIVE = 'inactive', _('Inactive')
+
+except ImportError:
+    State = None
+
+
+def UPPER(value):
+    return value.upper() if value else value
+
+
 class Person(models.Model):
     user = models.ForeignKey(User, null=True, blank=True, on_delete=models.CASCADE)
     first_name = models.TextField()
     last_name = models.TextField()
     preferred_name = models.TextField(null=True, blank=True)
+    active_bool = models.BooleanField(default=True)
 
     @shared_property
     def name(self):
@@ -68,6 +85,19 @@ class Person(models.Model):
     @shared_property
     def group(self):
         return F("user__group__name")
+
+    @shared_property
+    def active(self):
+        return F('active_bool')
+
+    if State:
+        @shared_property
+        def state(self):
+            return Case(
+                When(models.Q(active_bool=models.Value(True)), then=models.Value(State.ACTIVE)),
+                default=models.Value(State.INACTIVE),
+                output_field=models.TextField()
+            )
 
 
 class Address(models.Model):
