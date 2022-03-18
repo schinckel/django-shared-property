@@ -2,6 +2,14 @@
 History
 =======
 
+0.3.0 (2022-03-18)
+------------------
+* Support Django 4.0
+* Implement Coalesce and CombinedExpression
+* Support pluggable handlers.
+
+
+
 0.2.6 (2021-07-29)
 ------------------
 
