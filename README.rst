@@ -111,7 +111,7 @@ Within the context of a Q expression, you can use ``__isnull`` and ``__exact`` l
 You can even refer to constants in your Python file, such as the different values of an Enum. The return value of your python object will then correctly return instances of the Enum.
 
 
-If your chosen expression/function/value does not work, then it may be possible to implement it.
+If your chosen expression/function/value does not work, then it may be possible to implement it (see below).
 
 
 Shared properties should be pure functions - they must not refer to ``self`` (indeed, this will cause an error), and should not refer to variables, as they will be executed at times other than when they are about to be decorated.
@@ -171,6 +171,44 @@ In this specific case, the code that is generated would be fairly similar (altho
 The second example shows where a python comparison doesn't quite map to the SQL code: the ``COALESCE(expiry_date < now(), true)`` relies on SQL comparisons involving NULL to also return NULL, but in Python you cannot do this.
 
 Also note that in this case only a single expression may be used as the argument to the decorator.
+
+Registering Expressions
+-----------------------
+
+It is possible to register your own expressions. The structure is quite strict, and you'll need to reference the parser instance as well as the incoming expression. There's sometimes quite a bit of work to turn the Expression into (a) the correct Python, and then (b) the AST that is required.
+
+
+.. code-block:: python
+
+    from django_shared_property.parser import register
+
+
+    @register
+    def handle_foo(parser, expression):
+        # This assumes a foo() function in python that matches a foo()
+        # function in SQL, neither of which takes arguments.
+        return Call(
+            func=Name(id='foo', **parser.file),
+            args=[],
+            keywords=[],
+            kwonlyargs=[],
+            **parser.file,
+        )
+
+
+    class Foo(Func):
+        function = 'foo'
+
+
+    class MyModel(models.Model):
+        # ...
+
+        @shared_property
+        def the_foo(self):
+            return Foo()
+
+
+This is a toy example - try looking in the ``parser`` module for other examples.
 
 Credits
 -------

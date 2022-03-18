@@ -48,6 +48,8 @@ OPERATORS = {
     ">=": GtE,
 }
 
+_extensions = {}
+
 
 class Parser(object):
     def __init__(self, function):
@@ -103,7 +105,12 @@ class Parser(object):
     def build_expression(self, expression):
         if expression is None:
             return Constant(value=None, **self.file)
-        return getattr(self, "handle_{}".format(expression.__class__.__name__.lower()))(expression)
+        handler_name = "handle_{}".format(expression.__class__.__name__.lower())
+
+        if handler_name in _extensions:
+            return _extensions[handler_name](self, expression)
+
+        return getattr(self, handler_name)(expression)
 
     def handle_case(self, case):
         # We can have N When expressions, and then (optionally) one that is the default.
@@ -372,3 +379,17 @@ class Parser(object):
             return self._attr_lookup(attr, value)
 
         raise ValueError("Unhandled attr lookup")
+
+
+class register:
+    def __init__(self, func):
+        if isinstance(func, str):
+            self.name = f'handle_{func}'
+        else:
+            name = func.__code__.co_name
+            if not name.startswith('handle_'):
+                name = f'handle_{name}'
+            _extensions[name] = func
+
+    def __call__(self, func):
+        _extensions[self.name] = func

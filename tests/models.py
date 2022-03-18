@@ -1,10 +1,11 @@
 from django.db import models
 from django.db.models.expressions import Case, CombinedExpression, F, Func, Value, When
-from django.db.models.functions import Coalesce, Concat, Lower
+from django.db.models.functions import Coalesce, Concat, Lower, Upper
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from django_shared_property.decorator import shared_property
+from django_shared_property.parser import register
 
 
 class Group(models.Model):
@@ -28,8 +29,18 @@ except ImportError:
     State = None
 
 
-def UPPER(value):
-    return value.upper() if value else value
+@register
+def handle_upper(self, expression):
+    from ast import Call, Attribute
+    return Call(
+        func=Attribute(
+            value=self.build_expression(*expression.get_source_expressions()), attr='upper', **self.file
+        ),
+        args=[],
+        keywords=[],
+        kwonlyargs=[],
+        **self.file,
+    )
 
 
 class Person(models.Model):
@@ -46,6 +57,10 @@ class Person(models.Model):
     @shared_property
     def lower_name(self):
         return Lower(F("name"), output_field=models.TextField())
+
+    @shared_property
+    def upper_name(self):
+        return Upper(F('name'), output_field=models.TextField())
 
     @shared_property
     def display_name(self):
