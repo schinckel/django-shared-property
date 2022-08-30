@@ -11,7 +11,6 @@ class SharedPropertyField(AutoField):
     def __init__(self, name, expression, model):
         self.expression = expression
         self.model = model
-        self.concrete = False
         super().__init__()
         self.set_attributes_from_name(name)
         self.db_returning = False
@@ -65,7 +64,12 @@ class shared_property(object):
         # We don't really do anything with the value - but we need to
         # override this otherwise instance.refresh_from_db() would stomp
         # over our values.
-        self.value = value
+        if self.callable.__name__ in instance.__dict__ and self.callable(instance) != value:
+            raise ValueError('Setting a value that does not match the calculated value is unsupported')
+        # However, to prevent an issue where it thinks we
+        # have deferred_fields, we want to also store the
+        # value on the instance.
+        instance.__dict__[self.callable.__name__] = value
 
     def contribute_to_class(self, cls, name, private_only=False):
         field = SharedPropertyField(name, expression=self.expression, model=cls)
