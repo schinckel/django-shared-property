@@ -1,3 +1,5 @@
+import pytest
+
 from ..models import Person
 
 
@@ -64,3 +66,15 @@ def test_override_callable():
 
 def test_alternate_syntax():
     assert Person(first_name="Bar").alternate_syntax == "Bar"
+
+
+def test_setting_value():
+    person = Person.objects.create(first_name='Foo', last_name='Bar')
+    with pytest.raises(
+        ValueError,
+        match='Setting a value that does not match the calculated value is unsupported'
+    ):
+        person.useless = 'WAT'
+
+    person.useless = 'Useless'
+    person.save()
