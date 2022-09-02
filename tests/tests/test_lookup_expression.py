@@ -12,6 +12,7 @@ def test_empty_lookup():
 def test_null_lookup():
     Person.objects.create(first_name="foo", last_name="bar")
     assert Person.objects.get().username is None
+    assert Person.objects.filter(username__isnull=True)
 
 
 @pytest.mark.xfail
