@@ -1,6 +1,7 @@
 from django.db import models
 from django.db.models.expressions import Case, CombinedExpression, F, Func, Value, When
 from django.db.models.functions import Coalesce, Concat, Lower, Upper
+from django.db.models.lookups import Exact
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
@@ -15,6 +16,20 @@ class Group(models.Model):
 class User(models.Model):
     username = models.TextField()
     group = models.ForeignKey(Group, null=True, blank=True, on_delete=models.SET_NULL)
+    data = models.JSONField(default=dict)
+    other = models.TextField()
+
+    @shared_property(Coalesce(Exact(F('data__fields__isinactive'), Value('T')), Value(False)))
+    def inactive(self):
+        return self.data.get('fields', {}).get('isinactive', 'F') == 'T'
+
+    @shared_property
+    def active(self):
+        return Exact(F('inactive'), Value(False))
+
+    @shared_property
+    def active_2(self):
+        return F('person__active')
 
 
 try:

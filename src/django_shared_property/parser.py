@@ -14,8 +14,10 @@ from ast import (  # Import,; ImportFrom,; Expr,; alias,
     Gt,
     GtE,
     If,
+    Import,
     Is,
     IsNot,
+    Lambda,
     List,
     Load,
     Lt,
@@ -31,6 +33,7 @@ from ast import (  # Import,; ImportFrom,; Expr,; alias,
     Tuple,
     UnaryOp,
     While,
+    alias,
     arg,
     arguments,
     comprehension,
@@ -65,7 +68,7 @@ class Parser(object):
         }
         self.file_store = dict(self.file, ctx=Store())
         self.expression = expression
-        # self.imports = []
+        self.imports = set()
         body = self.build_expression(expression)
         if isinstance(body, list):
             pass
@@ -92,13 +95,17 @@ class Parser(object):
                     kw_defaults=[],
                     vararg=[],
                     kwonlyargs=[],
-                    body=body,
+                    body=[
+                        Import(names=[alias(name=imp, **self.file)], **self.file)
+                        for imp in self.imports
+                    ] + body,
                     decorator_list=[],
                 ),
             ],
             type_ignores=[],
             **self.file,
         )
+        # import pdb; pdb.set_trace()
         fix_missing_locations(self.ast)
         self.code = compile(self.ast, mode="exec", filename=self.file["filename"])
 
@@ -133,6 +140,9 @@ class Parser(object):
             orelse=orelse,
             **self.file,
         )
+
+    def handle_bool(self, boolean):
+        return Constant(value=boolean, **self.file)
 
     def handle_q(self, q):
         if not q.children:
@@ -173,6 +183,51 @@ class Parser(object):
         # What about transforms/lookups?
         f.contains_aggregate = False
         if "__" in f.name:
+            self.imports.add('functools')
+
+            return Call(
+                func=Attribute(value=Name(id='functools', **self.file), attr='reduce', **self.file),
+                args=[
+                    Lambda(
+                        args=arguments(
+                            posonlyargs=[],
+                            args=[arg(arg='x', **self.file), arg(arg='y', **self.file)],
+                            kwonlyargs=[],
+                            kw_defaults=[],
+                            defaults=[]
+                        ),
+                        body=Call(
+                            func=Name(id='getattr', **self.file),
+                            args=[
+                                Name(id='x', **self.file),
+                                Name(id='y', **self.file),
+                                Constant(value=None, **self.file),
+                            ],
+                            keywords=[],
+                            **self.file
+                        ),
+                        **self.file
+                    ),
+                    List(
+                        elts=[
+                            Constant(value=x, **self.file)
+                            for x in f.name.split('__')
+                        ],
+                        **self.file
+                    ),
+                    Name(id='self', **self.file),
+                ],
+                keywords=[],
+                **self.file,
+            )
+
+            left, *parts = f.name.split('__')
+            expression = Attribute(value=Name(id='self', **self.file), attr=left, **self.file)
+            while parts:
+                left, *parts = parts
+                expression = Attribute(value=expression, attr=left, **self.file)
+            return expression
+
             # We need to chain a bunch of attr lookups, returning None
             # if any of them give us a None, we should be returning a None.
             #
@@ -257,7 +312,7 @@ class Parser(object):
             return Num(n=value.value, **self.file)
 
         if isinstance(value.value, bool):
-            return Name(id=str(value.value), **self.file)
+            return Constant(value=value.value, **self.file)
 
         raise ValueError("Unhandled Value")
 
@@ -318,7 +373,7 @@ class Parser(object):
         """
         next(
             itertools.chain(
-                (x for x in expression.get_source_expressions() where x is not Null),
+                (x for x in expression.get_source_expressions() where x is not None),
                 (None,)
             )
         )
@@ -335,7 +390,7 @@ class Parser(object):
                     elt=Name(id="x", **self.file),
                     generators=[
                         comprehension(
-                            target=Name(id="x", ctx=Store()),
+                            target=Name(id="x", **(dict(self.file, ctx=Store()))),
                             iter=expressions,
                             ifs=[
                                 Compare(
@@ -354,6 +409,15 @@ class Parser(object):
             ],
             keywords=[],
             **self.file,
+        )
+
+    def handle_exact(self, exact):
+        left, right = exact.get_source_expressions()
+        return Compare(
+            left=self.build_expression(left),
+            ops=[Eq(**self.file)],
+            comparators=[self.build_expression(right)],
+            **self.file
         )
 
     def _attr_lookup(self, attr, value):

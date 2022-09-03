@@ -34,9 +34,11 @@ class SharedPropertyField(AutoField):
             self
         )
 
-    @cached_property
-    def resolved_expression(self):
-        return self.expression.resolve_expression(Query(self.model))
+    @property
+    def output_field(self):
+        if getattr(self.expression, 'output_field', None):
+            return self.expression.output_field
+        return self.expression.resolve_expression(Query(self.model)).output_field
 
 
 class shared_property(object):
