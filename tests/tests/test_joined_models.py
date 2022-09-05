@@ -1,5 +1,3 @@
-import pytest
-
 from ..models import Address, Person, User
 
 
@@ -15,7 +13,19 @@ def test_select_related():
     assert Address.objects.select_related("person").get().person.name == "Foo Bar"
 
 
-@pytest.mark.xfail
-def test_double_related():
+def test_related_back():
     Person.objects.create(first_name="Foo", last_name="Bar", user=User.objects.create())
-    assert Person.objects.filter(user__active_2=True).get().active_2
+    assert Person.objects.filter(user__active_2=True).get().user.active_2
+
+
+def test_double_join():
+    Address.objects.create(
+        person=Person.objects.create(
+            first_name='Foo',
+            last_name='bar',
+            user=User.objects.create()
+        )
+    )
+    assert Address.objects.filter(person__user__active=True)
+
+    assert Address.objects.select_related('person__user')

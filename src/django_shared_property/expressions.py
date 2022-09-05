@@ -20,17 +20,40 @@ class ExpressionCol(Expression):
     def get_transform(self, name):
         return self.target.get_transform(name)
 
-    def as_sql(self, compiler, connection):
+    def _resolve_expression(self, query):
         expression = self.target.expression
-        if compiler.query.model != self.model:
-            expression = retarget_f_expression(
-                expression, get_retarget_key(self.model, compiler.query.model)
-            )
-        resolved = expression.resolve_expression(compiler.query)
+        if query.model != self.model:
+            if isinstance(expression, (F, Q)) and '__' in expression.name:
+                resolved = query.__class__(self.model).resolve_ref(expression.name)
+                if getattr(resolved, 'model', None) == query.model:
+                    return resolved
+            parent_alias, _ = query.table_alias(query.model._meta.db_table)
+            # We need to work out the path we need to rewrite the F() expression(s) to contain.
+            alias, _ = query.table_alias(self.model._meta.db_table)
+            while True:
+                join = query.alias_map[alias]
+                # We need to see which end of this join we need to look up: either name or related_query_name()
+                model = join.join_field.model
+                if query.table_alias(model._meta.db_table) == join.table_alias:
+                    # This is a join that uses a field on the model we are looking at, so
+                    # we need the related_query_name
+                    expression = retarget_f_expression(expression, join.join_field.related_query_name())
+                else:
+                    expression = retarget_f_expression(expression, join.join_field.name)
+                alias = join.parent_alias
+                if alias == parent_alias:
+                    break
+
+        # Remove duplicate paths.
+
+        return expression.resolve_expression(query)
+
+    def as_sql(self, compiler, connection):
+        resolved = self._resolve_expression(compiler.query)
         alias = getattr(resolved, "alias", None) or self.target.model._meta.db_table
         if alias not in compiler.query.table_map:
             compiler.query.setup_joins(
-                expression.name.split("__"),
+                self.expression.name.split("__"),
                 self.model._meta,
                 alias,
             )
@@ -38,16 +61,6 @@ class ExpressionCol(Expression):
 
     def get_db_converters(self, connection):
         return self.target.get_db_converters(connection)
-
-
-def get_retarget_key(from_model, to_model):
-    for field in from_model._meta.fields:
-        if field.related_model == to_model:
-            return field.related_query_name()
-    for field in to_model._meta.fields:
-        if field.related_model == from_model:
-            return field.name
-    raise ValueError('Unable to detect relation')
 
 
 def retarget_f_expression(expression, key):
