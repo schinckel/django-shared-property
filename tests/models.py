@@ -59,7 +59,7 @@ def handle_upper(self, expression):
 
 
 class Person(models.Model):
-    user = models.ForeignKey(User, null=True, blank=True, on_delete=models.CASCADE)
+    user = models.OneToOneField(User, null=True, blank=True, on_delete=models.CASCADE)
     first_name = models.TextField()
     last_name = models.TextField()
     preferred_name = models.TextField(null=True, blank=True)
