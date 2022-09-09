@@ -40,6 +40,12 @@ class SharedPropertyField(AutoField):
             return self.expression.output_field
         return self.expression.resolve_expression(Query(self.model)).output_field
 
+    def contribute_to_class(self, cls, name, **kwargs):
+        if self not in cls._meta.fields:
+            cls._meta.add_field(self, private=True)
+            if not getattr(cls, self.attname, None):
+                setattr(cls, self.attname, self)
+
 
 class shared_property(object):
     def __init__(self, func):

@@ -145,3 +145,18 @@ class Person(models.Model):
 
 class Address(models.Model):
     person = models.OneToOneField(Person, related_name="address", primary_key=True, on_delete=models.CASCADE)
+
+
+class Abstract(models.Model):
+    foo = models.TextField()
+
+    @shared_property
+    def bar(self):
+        return models.F('foo')
+
+    class Meta:
+        abstract = True
+
+
+class Concrete(Abstract):
+    baz = models.TextField()
