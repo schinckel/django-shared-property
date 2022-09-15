@@ -41,10 +41,10 @@ class SharedPropertyField(AutoField):
         return self.expression.resolve_expression(Query(self.model)).output_field
 
     def contribute_to_class(self, cls, name, **kwargs):
-        if self not in cls._meta.fields:
-            cls._meta.add_field(self, private=True)
-            if not getattr(cls, self.attname, None):
-                setattr(cls, self.attname, self)
+        if cls != self.model:
+            # Adding to a concrete subclass.
+            field = SharedPropertyField(name, expression=self.expression, model=cls)
+            cls._meta.add_field(field, private=True)
 
 
 class shared_property(object):
@@ -82,8 +82,7 @@ class shared_property(object):
     def contribute_to_class(self, cls, name, private_only=False):
         field = SharedPropertyField(name, expression=self.expression, model=cls)
         cls._meta.add_field(field, private=True)
-        if not getattr(cls, field.attname, None):
-            setattr(cls, field.attname, self)
+        setattr(cls, field.attname, self)
 
     def property(self, method):
         return self(method)

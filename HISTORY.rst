@@ -2,6 +2,10 @@
 History
 =======
 
+0.5.3 (2022-09-15)
+------------------
+* Really support abstract models - actually querying was not working.
+
 0.5.2 (2022-09-09)
 ------------------
 * Support using a shared_property on an abstract base model.
