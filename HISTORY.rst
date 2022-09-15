@@ -2,6 +2,23 @@
 History
 =======
 
+0.5.2 (2022-09-09)
+------------------
+* Support using a shared_property on an abstract base model.
+
+0.5.1 (2022-09-05)
+------------------
+* Bugfix for supporting chained lookups.
+
+0.5.0 (2022-09-03)
+------------------
+* Support queries over joined models.
+
+0.4.0 (2022-08-30)
+------------------
+* Support Django 4.1
+* Handle writing values to shared_property fields (ie, refetch from db, etc).
+
 0.3.0 (2022-03-18)
 ------------------
 * Support Django 4.0
