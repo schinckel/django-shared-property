@@ -2,6 +2,10 @@
 History
 =======
 
+0.5.4 (2022-09-22)
+------------------
+* Allow using a shared_property as a target of an OuterRef in a Subquery/Exists.
+
 0.5.3 (2022-09-15)
 ------------------
 * Really support abstract models - actually querying was not working.
