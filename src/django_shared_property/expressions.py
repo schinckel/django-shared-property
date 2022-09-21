@@ -30,6 +30,10 @@ class ExpressionCol(Expression):
             parent_alias, _ = query.table_alias(query.model._meta.db_table)
             # We need to work out the path we need to rewrite the F() expression(s) to contain.
             alias, _ = query.table_alias(self.model._meta.db_table)
+            if alias not in query.alias_map:
+                # This could be a subquery, with an OuterRef.
+                return expression.resolve_expression(query.__class__(self.model))
+
             while True:
                 join = query.alias_map[alias]
                 # We need to see which end of this join we need to look up: either name or related_query_name()
