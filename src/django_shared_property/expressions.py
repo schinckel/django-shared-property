@@ -40,7 +40,10 @@ class ExpressionCol(Expression):
                 resolved = query.__class__(self.model).resolve_ref(expression.name)
                 if getattr(resolved, 'model', None) == query.model:
                     return resolved
-            parent_alias, _ = query.table_alias(query.model._meta.db_table)
+            try:
+                parent_alias, _ = query.table_alias(query.model._meta.db_table)
+            except KeyError:
+                parent_alias = query.model._meta.db_table
             # We need to work out the path we need to rewrite the F() expression(s) to contain.
             alias, _ = query.table_alias(self.model._meta.db_table)
             if alias not in query.alias_map:
@@ -51,7 +54,12 @@ class ExpressionCol(Expression):
                 join = query.alias_map[alias]
                 # We need to see which end of this join we need to look up: either name or related_query_name()
                 model = join.join_field.model
-                if query.table_alias(model._meta.db_table) == join.table_alias:
+                try:
+                    _model_alias, _ = query.table_alias(model._meta.db_table)
+                except KeyError:
+                    _model_alias = model._meta.db_table
+
+                if _model_alias == join.table_alias:
                     # This is a join that uses a field on the model we are looking at, so
                     # we need the related_query_name
                     expression = retarget_f_expression(expression, join.join_field.related_query_name())
