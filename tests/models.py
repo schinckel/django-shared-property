@@ -19,7 +19,13 @@ class User(models.Model):
     data = models.JSONField(default=dict)
     other = models.TextField()
 
-    @shared_property(Coalesce(Exact(F('data__fields__isinactive'), Value('T')), Value(False)))
+    @shared_property(
+        models.Case(
+            models.When(data__fields__isinactive='T', then=models.Value(True)),
+            default=models.Value(False),
+            output_field=models.BooleanField(),
+        )
+    )
     def inactive(self):
         return self.data.get('fields', {}).get('isinactive', 'F') == 'T'
 
