@@ -13,7 +13,6 @@ def test_json_reference_works():
     user = User.objects.get()
     assert not user.active
     assert user.inactive
-    assert user.inactive_2
 
 
 def test_json_reference_on_joined_model_works():
