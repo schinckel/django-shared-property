@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
-from django.db.models import Expression, F, AutoField
+from django.db.models import Expression, F, AutoField, BooleanField
 from django.db.models.sql.query import Query
 from django.utils.functional import cached_property
+from django.db.models.lookups import Lookup
+import django
 
 from .expressions import ExpressionCol
 from .parser import Parser
@@ -38,6 +40,17 @@ class SharedPropertyField(AutoField):
     def output_field(self):
         if getattr(self.expression, 'output_field', None):
             return self.expression.output_field
+
+        if django.VERSION < (4, 0):
+            if isinstance(self.expression, (Lookup,)):
+                return BooleanField()
+            try:
+                return self.expression.resolve_expression(Query(self.model)).output_field
+            except AttributeError:
+                for expression in self.expression.get_source_expressions():
+                    if getattr(expression, 'output_field', None):
+                        return expression.output_field
+
         return self.expression.resolve_expression(Query(self.model)).output_field
 
     def contribute_to_class(self, cls, name, **kwargs):

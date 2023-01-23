@@ -1,10 +1,23 @@
-from django.db.models.expressions import Expression, F, Q
+from django.db.models.functions import Coalesce
+from django.db.models.lookups import Lookup
+from django.db.models.expressions import Expression, F, Q, Value
+from copy import deepcopy
+import django
 
 
 class ExpressionCol(Expression):
     contains_aggregate = False
 
     def __init__(self, expression, model, alias=None, target=None):
+        if django.VERSION < (4, 0):
+            if isinstance(expression, Coalesce) and any(
+                isinstance(exp, Value)
+                for exp in expression.get_source_expressions()
+            ):
+                expression.set_source_expressions([
+                    exp.value if isinstance(exp, Value) and isinstance(exp.value, Lookup) else exp
+                    for exp in expression.get_source_expressions()
+                ])
         self.expression = expression
         self.alias = alias
         self.model = model
@@ -48,9 +61,7 @@ class ExpressionCol(Expression):
                 if alias == parent_alias:
                     break
 
-        # Remove duplicate paths.
-
-        return expression.resolve_expression(query)
+        return resolve(expression, query)
 
     def as_sql(self, compiler, connection):
         resolved = self._resolve_expression(compiler.query)
@@ -67,6 +78,17 @@ class ExpressionCol(Expression):
         return self.target.get_db_converters(connection)
 
 
+def resolve(exp, query):
+    try:
+        return exp.resolve_expression(query)
+    except AttributeError:
+        exp = deepcopy(exp)
+        exp.set_source_expressions([
+            resolve(x, query) for x in exp.get_source_expressions()
+        ])
+        return exp
+
+
 def retarget_f_expression(expression, key):
     if isinstance(expression, F):
         return F(f'{key}__{expression.name}')
@@ -75,7 +97,7 @@ def retarget_f_expression(expression, key):
             f'{key}__{rest}': value
             for rest, value in expression.children
         })
-    expression = expression.copy()
+    expression = deepcopy(expression)
     expression.set_source_expressions([
         retarget_f_expression(expr, key)
         for expr in expression.get_source_expressions()
