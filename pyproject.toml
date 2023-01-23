@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "Django-Shared-Property"
-version = "0.5.4"
+version = "0.6.0"
 description = "Properties that are both ORM expressions and python code."
 authors = ["Matthew Schinckel <matt@schinckel.net>"]
 license = "MIT license"
