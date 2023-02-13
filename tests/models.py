@@ -1,6 +1,7 @@
 from django.db import models
-from django.db.models.expressions import Case, CombinedExpression, F, Func, Value, When
-from django.db.models.functions import Coalesce, Concat, Lower, Upper
+from django.db.models.expressions import Case, CombinedExpression, F, Func, Value, When, ExpressionWrapper
+from django.db.models.fields.json import KeyTextTransform
+from django.db.models.functions import Coalesce, Concat, Lower, Upper, Cast
 from django.db.models.lookups import Exact
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -36,6 +37,10 @@ class User(models.Model):
     @shared_property
     def active_2(self):
         return F('person__active')
+
+    @shared_property(Cast(models.F('data__fields__isinactive_2'), output_field=models.BooleanField()))
+    def inactive_2(self):
+        return self.data.get('fields', {}).get('isinactive_2')
 
 
 try:

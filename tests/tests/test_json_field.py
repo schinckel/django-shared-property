@@ -24,3 +24,11 @@ def test_json_reference_on_joined_model_works():
     assert Person.objects.filter(user__active=False).exists()
     assert Person.objects.filter(user__inactive=True).exists()
     assert Person.objects.filter(user__data__fields__isinactive='T').exists()
+
+
+def test_json_direct_reference():
+    User.objects.create(data={'fields': {'isinactive_2': True}})
+    assert User.objects.filter(inactive_2=True).get()
+    User.objects.create(data={'fields': {'isinactive_2': False}})
+    assert User.objects.filter(inactive_2=True).get()
+    assert User.objects.filter(inactive_2=False).get()
