@@ -29,7 +29,7 @@ classifiers = [
 [tool.poetry.dependencies]
 python = ">3.8"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 bump2version = "*"
 pip = "*"
 wheel = "*"
@@ -40,9 +40,13 @@ coverage = "*"
 Sphinx = "*"
 twine = "*"
 
+[tool.poetry.group.test.dependencies]
 pytest = "*"
+pytest-django = "*"
 pytest-runner = "*"
 pytest-cov = "*"
+dj_database_url = "*"
+psycopg2-binary = "*"
 rstcheck = "*"
 ptpython = "*"
 
