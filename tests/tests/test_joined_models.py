@@ -29,3 +29,10 @@ def test_double_join():
     assert Address.objects.filter(person__user__active=True)
 
     assert Address.objects.select_related('person__user')
+
+
+def test_count_after_filter():
+    Person.objects.create(first_name="Foo", last_name="Bar", user=User.objects.create(username='bar'))
+    Person.objects.create(first_name="Foo", last_name="Bar", user=User.objects.create(username='foo'))
+
+    assert Person.objects.filter(username='foo').values('first_name').count() == 1
