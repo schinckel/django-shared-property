@@ -30,6 +30,10 @@ class User(models.Model):
     def inactive(self):
         return self.data.get('fields', {}).get('isinactive', 'F') == 'T'
 
+    @inactive.setter
+    def inactive(self, value: bool):
+        self.data.fields['isinactive'] = str(value)[0]
+
     @shared_property
     def active(self):
         return Exact(F('inactive'), Value(False))

@@ -74,6 +74,7 @@ class shared_property(object):
 
     def __call__(self, method):
         self.callable = method
+        print(self, method)
         return self
 
     def __get__(self, instance, cls=None):
@@ -82,6 +83,9 @@ class shared_property(object):
         return self.callable(instance)
 
     def __set__(self, instance, value):
+        if getattr(self, '__setter', None):
+            import pdb; pdb.set_trace()
+            return self.__setter(instance, value)
         # We don't really do anything with the value - but we need to
         # override this otherwise instance.refresh_from_db() would stomp
         # over our values.
@@ -99,3 +103,8 @@ class shared_property(object):
 
     def property(self, method):
         return self(method)
+
+    def setter(self, function):
+        self.__setter = function
+        print(self, function)
+        return self
