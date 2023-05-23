@@ -72,6 +72,11 @@ Similar to a Python property, a django-shared-property requires a method that ta
 
 .. code-block:: python
 
+    from django.db import models
+    from django.db.models.functions import Concat
+    from django_shared_property.decorator import shared_property
+
+
     class Person(models.Model):
         first_name = models.TextField()
         last_name = models.TextField()
