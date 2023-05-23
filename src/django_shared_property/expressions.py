@@ -80,6 +80,9 @@ class ExpressionCol(Expression):
                 self.model._meta,
                 alias,
             )
+        vendor_impl = getattr(resolved, "as_" + connection.vendor, None)
+        if vendor_impl:
+            return vendor_impl(compiler, connection)
         return resolved.as_sql(compiler, connection)
 
     def get_db_converters(self, connection):
