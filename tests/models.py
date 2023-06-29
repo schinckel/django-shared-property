@@ -1,7 +1,9 @@
+import datetime
+
 from django.db import models
 from django.db.models.expressions import Case, CombinedExpression, F, Func, Value, When, ExpressionWrapper
 from django.db.models.fields.json import KeyTextTransform
-from django.db.models.functions import Coalesce, Concat, Lower, Upper, Cast
+from django.db.models.functions import Coalesce, Concat, Lower, Upper, Cast, Trunc
 from django.db.models.lookups import Exact
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -68,6 +70,22 @@ def handle_upper(self, expression):
         **self.file,
     )
 
+class ValuesMap(Coalesce):
+    """
+    Basic example of expression with postprocessing function "convert_value"
+    """
+    def __init__(self, *args, values_map: dict):
+        super().__init__(*args)
+        self.values_map = values_map
+
+    @staticmethod
+    def _converter(value, expression, connection):
+        return expression.values_map.get(value)
+
+    @property
+    def convert_value(self):
+        return self._converter
+
 
 class Person(models.Model):
     user = models.OneToOneField(User, null=True, blank=True, on_delete=models.CASCADE)
@@ -75,6 +93,8 @@ class Person(models.Model):
     last_name = models.TextField()
     preferred_name = models.TextField(null=True, blank=True)
     active_until = models.DateTimeField(null=True, blank=True)
+    person_type_code = models.IntegerField(null=True, blank=True)
+    person_type_code_2 = models.IntegerField(null = True, blank = True)
 
     @shared_property
     def name(self):
@@ -152,6 +172,19 @@ class Person(models.Model):
                 default=models.Value(State.INACTIVE),
                 output_field=models.TextField(),
             )
+
+    @shared_property(
+        ValuesMap('person_type_code', 'person_type_code_2', values_map = {1: 'Good', 2: 'Bad', 3: 'Sneaky'})
+    )
+    def person_type(self):
+        type_code = self.person_type_code if self.person_type_code is not None else self.person_type_code_2
+        return {1: 'Good', 2: 'Bad', 3: 'Sneaky'}.get(type_code)
+
+    @shared_property(
+        Trunc('active_until', 'year', output_field = models.DateField(null=True, blank=True))
+    )
+    def active_until_year(self):
+        return datetime.datetime(self.active_until.year, 1, 1) if self.active_until is not None else None
 
 
 class Address(models.Model):
