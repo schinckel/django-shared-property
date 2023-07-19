@@ -1,6 +1,7 @@
 from django.db.models.functions import Coalesce
 from django.db.models.lookups import Lookup
 from django.db.models.expressions import Expression, F, Q, Value
+from django.utils.functional import cached_property
 from copy import deepcopy
 import django
 
@@ -85,8 +86,21 @@ class ExpressionCol(Expression):
             return vendor_impl(compiler, connection)
         return resolved.as_sql(compiler, connection)
 
-    def get_db_converters(self, connection):
-        return self.target.get_db_converters(connection)
+    @staticmethod
+    def _converter(value, expression, connection):
+        # expression is ExpressionCol instance. Get underlying expression and use its converter
+        underlying_expr = expression.expression
+        return underlying_expr.convert_value(value, underlying_expr, connection)
+
+    @cached_property
+    def convert_value(self):
+        if hasattr(self.expression, 'convert_value'):  # not present on e.g. Combinable subclasses like F()
+            if self.expression.convert_value == self.expression._convert_value_noop:
+                return self._convert_value_noop
+            else:
+                return self._converter
+        else:
+            return super().convert_value
 
 
 def resolve(exp, query):
