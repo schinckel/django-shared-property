@@ -46,7 +46,11 @@ class ExpressionCol(Expression):
             except KeyError:
                 parent_alias = query.model._meta.db_table
             # We need to work out the path we need to rewrite the F() expression(s) to contain.
-            alias, _ = query.table_alias(self.model._meta.db_table)
+            try:
+                alias, _ = query.table_alias(self.model._meta.db_table)
+            except KeyError:
+                alias = self.model._meta.db_table
+
             if alias not in query.alias_map:
                 # This could be a subquery, with an OuterRef.
                 return expression.resolve_expression(query.__class__(self.model))
