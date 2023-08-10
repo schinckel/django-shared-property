@@ -59,6 +59,10 @@ class SharedPropertyField(AutoField):
             field = SharedPropertyField(name, expression=self.expression, model=cls)
             cls._meta.add_field(field, private=True)
 
+    def _check_primary_key(self):
+        # We override AutoFieldMixin's primary key check.
+        return []
+
 
 class shared_property(object):
     def __init__(self, func):
