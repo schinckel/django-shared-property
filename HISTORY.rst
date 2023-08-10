@@ -2,6 +2,10 @@
 History
 =======
 
+0.7.0 (2023-08-10)
+------------------
+* Call convert_value on underlying expression if available.
+
 0.5.4 (2022-09-22)
 ------------------
 * Allow using a shared_property as a target of an OuterRef in a Subquery/Exists.

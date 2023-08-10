@@ -29,7 +29,10 @@ classifiers = [
 [tool.poetry.dependencies]
 python = ">3.8"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
 bump2version = "*"
 pip = "*"
 wheel = "*"
