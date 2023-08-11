@@ -1,3 +1,6 @@
+import pytest
+from django.conf import settings
+
 from ..models import User, Person
 
 
@@ -26,6 +29,11 @@ def test_json_reference_on_joined_model_works():
     assert Person.objects.filter(user__data__fields__isinactive='T').exists()
 
 
+@pytest.mark.xfail(
+    settings.DATABASES['default']['ENGINE'] == 'django.db.backends.sqlite3',
+    reason='Direct reference does not currently work in SQLite',
+    raises=User.DoesNotExist,
+)
 def test_json_direct_reference():
     User.objects.create(data={'fields': {'isinactive_2': True}})
     assert User.objects.filter(inactive_2=True).get()

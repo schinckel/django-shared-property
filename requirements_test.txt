@@ -1,1 +1,8 @@
 dj_database_url
+pytest-cov
+pytest-django
+pytest-pdb
+pytest
+pytest-runner
+coverage
+psycopg2-binary

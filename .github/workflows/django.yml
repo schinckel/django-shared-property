@@ -1,0 +1,51 @@
+name: Django CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  DJANGO_SETTINGS_MODULE: tests.settings
+  PYTHONPATH: .:src
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 8
+      matrix:
+        python-version: ['3.11', '3.10', '3.9']
+        django-version: ['4.2', '4.1', '4.0', '3.2']
+        database-url: ['postgres://postgres:postgres@postgres:5432/django-shared-property', 'sqlite:memory:']
+
+    container: python
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: django-shared-property
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install Pip
+      run: |
+        python -m pip install --upgrade pip
+    - name: Install Django
+      run: |
+        pip install django==${{ matrix.django-version }}.*
+        pip install -r requirements_test.txt
+    - name: Run Tests
+      run: |
+        DATABASE_URL=${{ matrix.database-url}} pytest --cov src/django_shared_property -s tests/tests/
