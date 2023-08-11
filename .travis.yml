@@ -2,10 +2,9 @@
 sudo: false
 language: python
 python:
+  - 3.11
+  - 3.10
   - 3.9
-  - 3.8
-  - 3.7
-  - 3.6
 
 env:
   global:
@@ -37,4 +36,4 @@ deploy:
     tags: true
     repo: schinckel/Django Shared Property
     branch: main
-    python: 3.9
+    python: 3.11

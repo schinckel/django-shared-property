@@ -66,6 +66,9 @@ class Parser(object):
             "col_offset": 0,
             "ctx": Load(),
         }
+        if getattr(func_code, 'co_lines', None):
+            self.file['end_lineno'] = max(x[2] for x in func_code.co_lines())
+
         self.file_store = dict(self.file, ctx=Store())
         self.expression = expression
         self.imports = set()
@@ -105,7 +108,6 @@ class Parser(object):
             type_ignores=[],
             **self.file,
         )
-        # import pdb; pdb.set_trace()
         fix_missing_locations(self.ast)
         self.code = compile(self.ast, mode="exec", filename=self.file["filename"])
 
