@@ -2,6 +2,11 @@
 History
 =======
 
+0.8.0 (2023-08-11)
+------------------
+* Support Python 3.11
+* Run CI on GitHub Actions
+
 0.7.0 (2023-08-10)
 ------------------
 * Call convert_value on underlying expression if available.
