@@ -228,7 +228,7 @@ This is a toy example - try looking in the ``parser`` module for other examples.
 Limitations
 -----------
 
-Use of the django queryset methods defer/only prevent any shared properties from loading. However, because of the way the feature works, you would still be able to use this property - at least in the case where the referenced fields are local.
+When using ``only()`` with a shared property, its local field dependencies are loaded with the property. Properties that reference related models may still load those related objects lazily.
 
 When you use a shared property that references a related model, and then try to filter on this, you cannot perform a count or exists query. See https://github.com/schinckel/django-shared-property/issues/2
 
