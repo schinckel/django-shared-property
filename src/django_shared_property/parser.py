@@ -26,10 +26,8 @@ from ast import (  # Import,; ImportFrom,; Expr,; alias,
     Name,
     Not,
     NotEq,
-    Num,
     Return,
     Store,
-    Str,
     Tuple,
     UnaryOp,
     While,
@@ -305,13 +303,13 @@ class Parser(object):
             )
 
         if isinstance(value.value, str):
-            return Str(s=value.value, **self.file)
+            return Constant(value=value.value, **self.file)
 
         if value.value is None:
             return Constant(value=None, **self.file)
 
         if isinstance(value.value, int):
-            return Num(n=value.value, **self.file)
+            return Constant(value=value.value, **self.file)
 
         if isinstance(value.value, bool):
             return Constant(value=value.value, **self.file)
