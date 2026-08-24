@@ -230,9 +230,6 @@ Limitations
 
 When using ``only()`` with a shared property, its local field dependencies are loaded with the property. Properties that reference related models may still load those related objects lazily.
 
-When you use a shared property that references a related model, and then try to filter on this, you cannot perform a count or exists query. See https://github.com/schinckel/django-shared-property/issues/2
-
-
 Credits
 -------
 

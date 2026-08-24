@@ -1,5 +1,3 @@
-import pytest
-
 from ..models import Group, Person, User
 
 
@@ -13,18 +11,17 @@ def test_null_lookup():
     Person.objects.create(first_name="foo", last_name="bar")
     assert Person.objects.get().username is None
     assert Person.objects.filter(username__isnull=True)
+    assert Person.objects.filter(username__isnull=True).exists()
 
 
-@pytest.mark.xfail
 def test_exists_query():
     Person.objects.create(first_name="foo", last_name="bar")
     assert Person.objects.filter(username=None).exists()
 
 
-@pytest.mark.xfail
 def test_count_query():
     Person.objects.create(first_name="foo", last_name="bar")
-    assert Person.objects.filter(username=None).count()
+    assert Person.objects.filter(username=None).count() == 1
 
 
 def test_value_lookup():
@@ -45,6 +42,8 @@ def test_multiple_lookups():
     assert Person.objects.get().group == "qux"
     assert bool(Person.objects.filter(group="qux"))
     assert not bool(Person.objects.filter(group=None))
+    assert Person.objects.filter(group="qux").exists()
+    assert Person.objects.filter(group="qux").count() == 1
 
 
 def test_nested_q_lookup_and_related_retargeting():

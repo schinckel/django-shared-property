@@ -104,6 +104,62 @@ def _add_immediate_loading_with_shared_property_dependencies(query, field_names)
 Query.add_immediate_loading = _add_immediate_loading_with_shared_property_dependencies
 
 
+def _shared_property_field(options, lookup):
+    name = lookup.split(LOOKUP_SEP, 1)[0]
+    return next(
+        (field for field in options.private_fields if field.name == name),
+        None,
+    )
+
+
+def _resolve_shared_property_joins(query, filter_expr, **kwargs):
+    if not isinstance(filter_expr, tuple) or not isinstance(filter_expr[0], str):
+        return
+
+    field = _shared_property_field(query.get_meta(), filter_expr[0])
+    if field is not None:
+        field.expression.resolve_expression(query, **kwargs)
+
+
+_build_filter = Query.build_filter
+
+
+def _build_filter_with_shared_property_joins(
+    self,
+    filter_expr,
+    branch_negated=False,
+    current_negated=False,
+    can_reuse=None,
+    allow_joins=True,
+    split_subq=True,
+    check_filterable=True,
+    summarize=False,
+    update_join_types=True,
+):
+    _resolve_shared_property_joins(
+        self,
+        filter_expr,
+        allow_joins=allow_joins,
+        reuse=can_reuse,
+        summarize=summarize,
+    )
+    return _build_filter(
+        self,
+        filter_expr,
+        branch_negated=branch_negated,
+        current_negated=current_negated,
+        can_reuse=can_reuse,
+        allow_joins=allow_joins,
+        split_subq=split_subq,
+        check_filterable=check_filterable,
+        summarize=summarize,
+        update_join_types=update_join_types,
+    )
+
+
+Query.build_filter = _build_filter_with_shared_property_joins
+
+
 class shared_property(object):
     def __init__(self, func):
         if isinstance(func, (Expression, F)):
