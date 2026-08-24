@@ -36,6 +36,16 @@ Installation:
 
     $ pip install django_shared_property
 
+Supported versions:
+-------------------
+
+Django Shared Property 1.0 supports Python 3.10 through 3.14 and Django
+5.2 through 6.1. The tested combinations are Django 5.2 on Python 3.10 through
+3.14, and Django 6.0 or 6.1 on Python 3.12 through 3.14.
+
+This release removes support for Python 3.9 and earlier, and Django 4.2 and
+earlier.
+
 Philosophy:
 -------------
 

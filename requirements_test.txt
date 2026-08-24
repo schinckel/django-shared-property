@@ -4,5 +4,6 @@ pytest-django
 pytest-pdb
 pytest
 pytest-runner
+tomli
 coverage
-psycopg2-binary
+psycopg[binary]
