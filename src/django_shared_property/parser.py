@@ -3,11 +3,15 @@ from ast import (  # Import,; ImportFrom,; Expr,; alias,
     And,
     Assign,
     Attribute,
+    BitAnd,
+    BitOr,
+    BitXor,
     BinOp,
     BoolOp,
     Call,
     Compare,
     Constant,
+    Div,
     Eq,
     FunctionDef,
     GeneratorExp,
@@ -18,16 +22,22 @@ from ast import (  # Import,; ImportFrom,; Expr,; alias,
     Is,
     IsNot,
     Lambda,
+    LShift,
     List,
     Load,
     Lt,
     LtE,
+    Mod,
     Module,
+    Mult,
     Name,
     Not,
     NotEq,
+    Pow,
     Return,
+    RShift,
     Store,
+    Sub,
     Tuple,
     UnaryOp,
     While,
@@ -47,6 +57,20 @@ OPERATORS = {
     "!=": NotEq,
     ">": Gt,
     ">=": GtE,
+}
+
+ARITHMETIC_OPERATORS = {
+    "+": Add,
+    "-": Sub,
+    "*": Mult,
+    "/": Div,
+    "%%": Mod,
+    "^": Pow,
+    "&": BitAnd,
+    "|": BitOr,
+    "#": BitXor,
+    "<<": LShift,
+    ">>": RShift,
 }
 
 _extensions = {}
@@ -148,11 +172,11 @@ class Parser(object):
         if not q.children:
             expr = Name(id="True", **self.file)
         elif len(q.children) == 1:
-            expr = self._attr_lookup(*q.children[0])
+            expr = self._build_q_child(q.children[0], q)
         elif q.connector == "AND":
             expr = Call(
                 func=Name(id="all", **self.file),
-                args=[List(elts=[self._attr_lookup(k, v) for k, v in q.children], **self.file)],
+                args=[List(elts=[self._build_q_child(child, q) for child in q.children], **self.file)],
                 keywords=[],
                 kwonlyargs=[],
                 **self.file,
@@ -160,7 +184,7 @@ class Parser(object):
         else:  # q.connector == 'OR'
             expr = Call(
                 func=Name(id="any", **self.file),
-                args=[List(elts=[self._attr_lookup(k, v) for k, v in q.children], **self.file)],
+                args=[List(elts=[self._build_q_child(child, q) for child in q.children], **self.file)],
                 keywords=[],
                 kwonlyargs=[],
                 **self.file,
@@ -170,6 +194,11 @@ class Parser(object):
             return UnaryOp(op=Not(), operand=expr, **self.file)
 
         return expr
+
+    def _build_q_child(self, child, parent):
+        if isinstance(child, parent.__class__):
+            return self.handle_q(child)
+        return self._attr_lookup(*child)
 
     def handle_concat(self, concat):
         return self.build_expression(*concat.get_source_expressions())
@@ -337,6 +366,14 @@ class Parser(object):
         return self.build_expression(*expression.get_source_expressions())
 
     def handle_combinedexpression(self, expression):
+        if expression.connector in ARITHMETIC_OPERATORS:
+            return BinOp(
+                left=self.build_expression(expression.lhs),
+                op=ARITHMETIC_OPERATORS[expression.connector](),
+                right=self.build_expression(expression.rhs),
+                **self.file,
+            )
+
         return Compare(
             left=self.build_expression(expression.lhs),
             ops=[OPERATORS[expression.connector](**self.file)],

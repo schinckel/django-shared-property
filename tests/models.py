@@ -40,6 +40,20 @@ class User(models.Model):
     def active_2(self):
         return F('person__active')
 
+    @shared_property
+    def nested_username_match(self):
+        return Case(
+            When(
+                models.Q(
+                    models.Q(username__exact=Value("foo")) | ~models.Q(other__exact=Value("blocked")),
+                    username__isnull=False,
+                ),
+                then=Value(True),
+            ),
+            default=Value(False),
+            output_field=models.BooleanField(),
+        )
+
     @shared_property(Cast(models.F('data__fields__isinactive_2'), output_field=models.BooleanField()))
     def inactive_2(self):
         return self.data.get('fields', {}).get('isinactive_2')
@@ -196,6 +210,10 @@ class Person(models.Model):
     def person_type(self):
         type_code = self.person_type_code if self.person_type_code is not None else self.person_type_code_2
         return {1: 'Good', 2: 'Bad', 3: 'Sneaky'}.get(type_code)
+
+    @shared_property
+    def next_person_type_code(self):
+        return F("person_type_code") + Value(1)
 
     @shared_property(
         Trunc('active_until', 'year', output_field = models.DateField(null=True, blank=True))
