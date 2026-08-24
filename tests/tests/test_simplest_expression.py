@@ -68,6 +68,13 @@ def test_alternate_syntax():
     assert Person(first_name="Bar").alternate_syntax == "Bar"
 
 
+def test_arithmetic_combined_expression():
+    person = Person.objects.create(first_name="Foo", last_name="Bar", person_type_code=1)
+
+    assert person.next_person_type_code == 2
+    assert Person.objects.filter(next_person_type_code=2).get() == person
+
+
 def test_setting_value():
     person = Person.objects.create(first_name='Foo', last_name='Bar')
     with pytest.raises(

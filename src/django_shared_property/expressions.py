@@ -122,10 +122,18 @@ def retarget_f_expression(expression, key):
     if isinstance(expression, F):
         return F(f'{key}__{expression.name}')
     if isinstance(expression, Q):
-        return Q(**{
-            f'{key}__{rest}': value
-            for rest, value in expression.children
-        })
+        children = []
+        for child in expression.children:
+            if isinstance(child, Q):
+                children.append(retarget_f_expression(child, key))
+            else:
+                lookup, value = child
+                children.append((f'{key}__{lookup}', value))
+        return Q(
+            *children,
+            _connector=expression.connector,
+            _negated=expression.negated,
+        )
     expression = deepcopy(expression)
     expression.set_source_expressions([
         retarget_f_expression(expr, key)
