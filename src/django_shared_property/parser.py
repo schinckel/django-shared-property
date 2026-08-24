@@ -89,7 +89,9 @@ class Parser(object):
             "ctx": Load(),
         }
         if getattr(func_code, 'co_lines', None):
-            self.file['end_lineno'] = max(x[2] for x in func_code.co_lines())
+            end_lines = [line for _, _, line in func_code.co_lines() if line is not None]
+            if end_lines:
+                self.file['end_lineno'] = max(end_lines)
 
         self.file_store = dict(self.file, ctx=Store())
         self.expression = expression
@@ -170,7 +172,7 @@ class Parser(object):
 
     def handle_q(self, q):
         if not q.children:
-            expr = Name(id="True", **self.file)
+            expr = Constant(value=True, **self.file)
         elif len(q.children) == 1:
             expr = self._build_q_child(q.children[0], q)
         elif q.connector == "AND":
@@ -337,10 +339,10 @@ class Parser(object):
         if value.value is None:
             return Constant(value=None, **self.file)
 
-        if isinstance(value.value, int):
+        if isinstance(value.value, bool):
             return Constant(value=value.value, **self.file)
 
-        if isinstance(value.value, bool):
+        if isinstance(value.value, int):
             return Constant(value=value.value, **self.file)
 
         raise ValueError("Unhandled Value")
@@ -494,3 +496,4 @@ class register:
 
     def __call__(self, func):
         _extensions[self.name] = func
+        return func
