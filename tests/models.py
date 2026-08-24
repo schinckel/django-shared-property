@@ -110,13 +110,14 @@ class Person(models.Model):
 
     @shared_property
     def display_name(self):
-        first_last = Concat(F("first_name"), Value(" "), F("last_name"))
+        first_last = Concat(F("first_name"), Value(" "), F("last_name"), output_field=models.TextField())
         first_preferred_last = Concat(
             F("first_name"),
             Value(" ("),
             F("preferred_name"),
             Value(") "),
             F("last_name"),
+            output_field=models.TextField(),
         )
         return Case(
             When(preferred_name__isnull=True, then=first_last),
