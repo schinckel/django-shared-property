@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-from django.db.models import Expression, F, AutoField
+from django.db.models import AutoField, Expression, F, Q
+from django.db.models.constants import LOOKUP_SEP
 from django.db.models.sql.query import Query
 from django.utils.functional import cached_property
 
@@ -31,7 +32,7 @@ class SharedPropertyField(AutoField):
             self.expression,
             self.model,
             self.model._meta.db_table,
-            self
+            self,
         )
 
     @property
@@ -45,6 +46,62 @@ class SharedPropertyField(AutoField):
             # Adding to a concrete subclass.
             field = SharedPropertyField(name, expression=self.expression, model=cls)
             cls._meta.add_field(field, private=True)
+
+
+def _shared_property_dependencies(model, name, seen=frozenset()):
+    field = model._meta.get_field(name)
+    if not isinstance(field, SharedPropertyField) or name in seen:
+        return set()
+    return _expression_dependencies(model, field.expression, seen | {name})
+
+
+def _expression_dependencies(model, expression, seen):
+    if isinstance(expression, F):
+        return _reference_dependencies(model, expression.name, seen)
+
+    dependencies = set()
+    if isinstance(expression, Q):
+        expressions = expression.children
+    elif hasattr(expression, 'get_source_expressions'):
+        expressions = expression.get_source_expressions()
+    else:
+        return dependencies
+
+    for child in expressions:
+        if isinstance(child, tuple):
+            dependencies.update(_reference_dependencies(model, child[0], seen))
+            dependencies.update(_expression_dependencies(model, child[1], seen))
+        else:
+            dependencies.update(_expression_dependencies(model, child, seen))
+    return dependencies
+
+
+def _reference_dependencies(model, reference, seen):
+    name, separator, _ = reference.partition(LOOKUP_SEP)
+    field = model._meta.get_field(name)
+    if separator and field.is_relation:
+        return set()
+    if isinstance(field, SharedPropertyField):
+        return _shared_property_dependencies(model, name, seen)
+    if field.concrete:
+        return {field.name}
+    return set()
+
+
+_add_immediate_loading = Query.add_immediate_loading
+
+
+def _add_immediate_loading_with_shared_property_dependencies(query, field_names):
+    expanded_field_names = set(field_names)
+    for field_name in field_names:
+        if LOOKUP_SEP not in field_name:
+            expanded_field_names.update(
+                _shared_property_dependencies(query.model, field_name),
+            )
+    _add_immediate_loading(query, expanded_field_names)
+
+
+Query.add_immediate_loading = _add_immediate_loading_with_shared_property_dependencies
 
 
 class shared_property(object):
