@@ -79,6 +79,7 @@ jobs:
       - name: Run tests
         env:
           DATABASE_URL: ${{ matrix.database == 'postgres' && 'postgres://postgres:postgres@localhost:5432/django-shared-property' || 'sqlite:memory:' }}
+          PYTHONPATH: .
         run: pytest --cov=django_shared_property -s tests/tests/
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
