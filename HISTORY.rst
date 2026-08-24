@@ -2,6 +2,11 @@
 History
 =======
 
+1.0.0 (2026-08-24)
+------------------
+* Support Python 3.10 through 3.14 and Django 5.2 through 6.1.
+* Drop support for Python 3.9 and earlier, and Django 4.2 and earlier.
+
 0.8.0 (2023-08-11)
 ------------------
 * Support Python 3.11
