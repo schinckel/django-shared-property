@@ -1,24 +1,12 @@
-from django.db.models.functions import Coalesce
-from django.db.models.lookups import Lookup
 from django.db.models.expressions import Expression, F, Q, Value
 from django.utils.functional import cached_property
 from copy import deepcopy
-import django
 
 
 class ExpressionCol(Expression):
     contains_aggregate = False
 
     def __init__(self, expression, model, alias=None, target=None):
-        if django.VERSION < (4, 0):
-            if isinstance(expression, Coalesce) and any(
-                isinstance(exp, Value)
-                for exp in expression.get_source_expressions()
-            ):
-                expression.set_source_expressions([
-                    exp.value if isinstance(exp, Value) and isinstance(exp.value, Lookup) else exp
-                    for exp in expression.get_source_expressions()
-                ])
         self.expression = expression
         self.alias = alias
         self.model = model
