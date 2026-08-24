@@ -141,6 +141,22 @@ class Person(models.Model):
         )
 
     @shared_property
+    def fallback_name(self):
+        return Coalesce(
+            F("preferred_name"),
+            F("first_name"),
+            output_field=models.TextField(),
+        )
+
+    @shared_property
+    def wrapped_first_name(self):
+        return ExpressionWrapper(F("first_name"), output_field=models.TextField())
+
+    @shared_property
+    def no_preferred_name(self):
+        return Value(None, output_field=models.TextField())
+
+    @shared_property
     def other(self):
         return F("name")
 
