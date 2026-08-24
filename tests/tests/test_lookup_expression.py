@@ -45,3 +45,20 @@ def test_multiple_lookups():
     assert Person.objects.get().group == "qux"
     assert bool(Person.objects.filter(group="qux"))
     assert not bool(Person.objects.filter(group=None))
+
+
+def test_nested_q_lookup_and_related_retargeting():
+    matching = Person.objects.create(
+        first_name="foo",
+        last_name="bar",
+        user=User.objects.create(username="foo", other="blocked"),
+    )
+    Person.objects.create(
+        first_name="other",
+        last_name="person",
+        user=User.objects.create(username="blocked", other="blocked"),
+    )
+
+    assert matching.user.nested_username_match is True
+    assert list(User.objects.filter(nested_username_match=True)) == [matching.user]
+    assert list(Person.objects.filter(user__nested_username_match=True)) == [matching]
