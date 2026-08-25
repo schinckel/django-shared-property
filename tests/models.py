@@ -3,7 +3,19 @@ import datetime
 from django.db import models
 from django.db.models.expressions import Case, CombinedExpression, F, Func, Value, When, ExpressionWrapper
 from django.db.models.fields.json import KeyTextTransform
-from django.db.models.functions import Coalesce, Concat, Lower, Upper, Cast, Trunc
+from django.db.models.functions import (
+    Cast,
+    Coalesce,
+    Concat,
+    Left,
+    Length,
+    Lower,
+    Replace,
+    Reverse,
+    Right,
+    Trunc,
+    Upper,
+)
 from django.db.models.lookups import Exact
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -119,8 +131,36 @@ class Person(models.Model):
         return Lower(F("name"), output_field=models.TextField())
 
     @shared_property
+    def lower_preferred_name(self):
+        return Lower(F("preferred_name"), output_field=models.TextField())
+
+    @shared_property
     def upper_name(self):
         return Upper(F('name'), output_field=models.TextField())
+
+    @shared_property
+    def preferred_name_length(self):
+        return Length(F("preferred_name"))
+
+    @shared_property
+    def replaced_preferred_name(self):
+        return Replace(F("preferred_name"), Value("a"), Value("@"), output_field=models.TextField())
+
+    @shared_property
+    def reversed_preferred_name(self):
+        return Reverse(F("preferred_name"), output_field=models.TextField())
+
+    @shared_property
+    def left_preferred_name(self):
+        return Left(Lower(F("preferred_name")), F("person_type_code"), output_field=models.TextField())
+
+    @shared_property
+    def right_preferred_name(self):
+        return Right(F("preferred_name"), F("person_type_code"), output_field=models.TextField())
+
+    @shared_property
+    def nullable_concat(self):
+        return Concat(F("preferred_name"), Value("!"), output_field=models.TextField())
 
     @shared_property
     def display_name(self):

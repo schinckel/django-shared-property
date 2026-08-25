@@ -116,9 +116,12 @@ Shared properties can reference any number of fields on the model, and even othe
   * Concat
   * Value
   * Lower and Upper (but only on Python objects that have these as attributes)
+  * Length, Replace, Reverse, Left, and Right (on text-valued expressions)
   * ExpressionWrapper
   * CombinedExpresson
   * Coalesce (but see the note below)
+
+Text expressions that normally propagate SQL ``NULL`` return ``None`` when evaluated on an instance. ``Left`` and ``Right`` require positive lengths. ``Concat`` follows Django's behaviour and treats ``NULL`` inputs as empty strings.
 
 Within the context of a Q expression, you can use ``__isnull`` and ``__exact`` lookups.
 

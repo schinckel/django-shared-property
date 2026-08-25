@@ -1,17 +1,11 @@
 from ast import (  # Import,; ImportFrom,; Expr,; alias,
-    Add,
     And,
     Assign,
     Attribute,
-    BitAnd,
-    BitOr,
-    BitXor,
-    BinOp,
     BoolOp,
     Call,
     Compare,
     Constant,
-    Div,
     Eq,
     FunctionDef,
     GeneratorExp,
@@ -22,22 +16,16 @@ from ast import (  # Import,; ImportFrom,; Expr,; alias,
     Is,
     IsNot,
     Lambda,
-    LShift,
     List,
     Load,
     Lt,
     LtE,
-    Mod,
     Module,
-    Mult,
     Name,
     Not,
     NotEq,
-    Pow,
     Return,
-    RShift,
     Store,
-    Sub,
     Tuple,
     UnaryOp,
     While,
@@ -59,18 +47,18 @@ OPERATORS = {
     ">=": GtE,
 }
 
-ARITHMETIC_OPERATORS = {
-    "+": Add,
-    "-": Sub,
-    "*": Mult,
-    "/": Div,
-    "%%": Mod,
-    "^": Pow,
-    "&": BitAnd,
-    "|": BitOr,
-    "#": BitXor,
-    "<<": LShift,
-    ">>": RShift,
+ARITHMETIC_HELPERS = {
+    "+": "add",
+    "-": "subtract",
+    "*": "multiply",
+    "/": "divide",
+    "%%": "modulo",
+    "^": "power",
+    "&": "bitand",
+    "|": "bitor",
+    "#": "bitxor",
+    "<<": "lshift",
+    ">>": "rshift",
 }
 
 _extensions = {}
@@ -95,7 +83,7 @@ class Parser(object):
 
         self.file_store = dict(self.file, ctx=Store())
         self.expression = expression
-        self.imports = set()
+        self.imports = {}
         body = self.build_expression(expression)
         if isinstance(body, list):
             pass
@@ -123,8 +111,8 @@ class Parser(object):
                     vararg=[],
                     kwonlyargs=[],
                     body=[
-                        Import(names=[alias(name=imp, **self.file)], **self.file)
-                        for imp in self.imports
+                        Import(names=[alias(name=module, asname=asname, **self.file)], **self.file)
+                        for module, asname in sorted(self.imports.items())
                     ] + body,
                     decorator_list=[],
                 ),
@@ -207,14 +195,14 @@ class Parser(object):
 
     def handle_concatpair(self, pair):
         a, b = pair.get_source_expressions()
-        return BinOp(left=self.build_expression(a), op=Add(), right=self.build_expression(b), **self.file)
+        return self._runtime_call("concat_pair", a, b)
 
     def handle_f(self, f):
         # Do we need to use .attname here?
         # What about transforms/lookups?
         f.contains_aggregate = False
         if "__" in f.name:
-            self.imports.add('functools')
+            self.imports.setdefault("functools", None)
 
             return Call(
                 func=Attribute(value=Name(id='functools', **self.file), attr='reduce', **self.file),
@@ -347,33 +335,39 @@ class Parser(object):
 
         raise ValueError("Unhandled Value")
 
-    def _handle_call_factory(func):
+    def _runtime_call(self, helper, *expressions):
+        self.imports.setdefault("django_shared_property._runtime", "_shared_property_runtime")
+        return Call(
+            func=Attribute(
+                value=Name(id="_shared_property_runtime", **self.file), attr=helper, **self.file
+            ),
+            args=[self.build_expression(expression) for expression in expressions],
+            keywords=[],
+            kwonlyargs=[],
+            **self.file,
+        )
+
+    def _handle_runtime_call_factory(helper):
         def handle_call(self, expression):
-            return Call(
-                func=Attribute(
-                    value=self.build_expression(*expression.get_source_expressions()), attr=func, **self.file
-                ),
-                args=[],
-                keywords=[],
-                kwonlyargs=[],
-                **self.file,
-            )
+            return self._runtime_call(helper, *expression.get_source_expressions())
 
         return handle_call
 
-    handle_upper = _handle_call_factory("upper")
-    handle_lower = _handle_call_factory("lower")
+    handle_upper = _handle_runtime_call_factory("upper")
+    handle_lower = _handle_runtime_call_factory("lower")
+    handle_length = _handle_runtime_call_factory("length")
+    handle_replace = _handle_runtime_call_factory("replace")
+    handle_reverse = _handle_runtime_call_factory("reverse")
+    handle_left = _handle_runtime_call_factory("left")
+    handle_right = _handle_runtime_call_factory("right")
 
     def handle_expressionwrapper(self, expression):
         return self.build_expression(*expression.get_source_expressions())
 
     def handle_combinedexpression(self, expression):
-        if expression.connector in ARITHMETIC_OPERATORS:
-            return BinOp(
-                left=self.build_expression(expression.lhs),
-                op=ARITHMETIC_OPERATORS[expression.connector](),
-                right=self.build_expression(expression.rhs),
-                **self.file,
+        if expression.connector in ARITHMETIC_HELPERS:
+            return self._runtime_call(
+                ARITHMETIC_HELPERS[expression.connector], expression.lhs, expression.rhs
             )
 
         return Compare(
