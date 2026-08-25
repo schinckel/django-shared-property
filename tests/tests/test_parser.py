@@ -4,6 +4,7 @@ from types import SimpleNamespace
 import pytest
 from django.db.models import Case, Q, Value, When
 from django.db.models.expressions import CombinedExpression, F
+from django.db.models.functions import Concat, Left, Length, Lower, Replace, Reverse, Right, Upper
 
 from django_shared_property.parser import Parser, _extensions, register
 
@@ -78,6 +79,52 @@ def test_parser_rejects_unsupported_lookup_types():
 
     with pytest.raises(ValueError, match="Unhandled Value"):
         Parser(unsupported_value)
+
+
+def test_parser_compiles_supported_text_expressions_with_nested_sources():
+    def text_length(_):
+        return Length(F("text"))
+
+    def replace_text(_):
+        return Replace(F("text"), F("search"), F("replacement"))
+
+    def reverse_text(_):
+        return Reverse(F("text"))
+
+    def left_text(_):
+        return Left(Lower(F("text")), F("width"))
+
+    def right_text(_):
+        return Right(F("text"), F("width"))
+
+    value = SimpleNamespace(text="ABCD", search="B", replacement="_", width=2)
+    assert compile_parser(text_length)(value) == 4
+    assert compile_parser(replace_text)(value) == "A_CD"
+    assert compile_parser(reverse_text)(value) == "DCBA"
+    assert compile_parser(left_text)(value) == "ab"
+    assert compile_parser(right_text)(value) == "CD"
+
+
+def test_parser_uses_null_safe_runtime_for_existing_handlers(monkeypatch):
+    monkeypatch.delitem(_extensions, "handle_upper", raising=False)
+
+    def lower_text(_):
+        return Lower(F("text"))
+
+    def upper_text(_):
+        return Upper(F("text"))
+
+    def concat_text(_):
+        return Concat(F("left"), F("right"))
+
+    def add_numbers(_):
+        return F("number") + Value(1)
+
+    value = SimpleNamespace(text=None, left="left", right=None, number=None)
+    assert compile_parser(lower_text)(value) is None
+    assert compile_parser(upper_text)(value) is None
+    assert compile_parser(concat_text)(value) == "left"
+    assert compile_parser(add_numbers)(value) is None
 
 
 def test_string_registered_handler_may_return_a_statement_list(monkeypatch):
